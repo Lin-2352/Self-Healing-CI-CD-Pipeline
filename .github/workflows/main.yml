@@ -1,0 +1,68 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    outputs:
+      failure_kind: ${{ steps.tests.outputs.failure_kind }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        id: tests
+        run: |
+          set +e
+          npm test
+          code=$?
+          set -e
+          # test.js exits 75 (EX_TEMPFAIL) for environment problems and 1 for real
+          # code bugs. Only a code bug is worth waking the self-healing workflow.
+          if [ "$code" -eq 0 ]; then
+            kind=none
+          elif [ "$code" -eq 75 ]; then
+            kind=infra
+          else
+            kind=code
+          fi
+          echo "failure_kind=$kind" >> "$GITHUB_OUTPUT"
+          echo "npm test exited $code -> failure_kind=$kind"
+          exit "$code"
+
+      - name: Build project
+        run: npm run build --if-present
+
+  notify-n8n-on-failure:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    # failure() alone would also fire for infrastructure problems (port already
+    # bound, DNS, runner disk). Those have nothing to fix in the source, and the
+    # model would invent a bogus patch and open a PR for them.
+    if: failure() && needs.build-and-test.outputs.failure_kind == 'code'
+    steps:
+      - name: Trigger n8n webhook
+        run: |
+          curl -sS -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -H "X-Webhook-Secret: ${{ secrets.N8N_WEBHOOK_SECRET }}" \
+            -d '{
+              "run_id": "${{ github.run_id }}",
+              "repo": "${{ github.repository }}",
+              "branch": "${{ github.ref_name }}",
+              "commit": "${{ github.sha }}",
+              "actor": "${{ github.actor }}",
+              "failure_kind": "${{ needs.build-and-test.outputs.failure_kind }}"
+            }'

@@ -1,0 +1,14 @@
+{
+  "name": "self-healing-cicd-demo",
+  "version": "1.0.0",
+  "description": "Demo app for the AI self-healing CI/CD pipeline",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js",
+    "build": "node index.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
