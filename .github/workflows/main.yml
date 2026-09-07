@@ -25,6 +25,10 @@ jobs:
       - name: Run tests
         id: tests
         run: |
+          # TEMP(infra-gate test): squat port 5000 so test.js hits EADDRINUSE
+          # and exits 75. Reverted in the next commit.
+          node -e 'require("net").createServer().listen(5000)' &
+          sleep 2
           set +e
           npm test
           code=$?
