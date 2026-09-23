@@ -42,6 +42,7 @@ const server = app.listen(PORT, () => {
       console.error(`CODE_FAILURE: ${err.message}`);
       server.close(() => process.exit(1));
     });
+});
 
 // Fires when the listen() itself fails (EADDRINUSE, EACCES, ...). Without this
 // handler Node throws an unhandled 'error' event and the pipeline would hand the
