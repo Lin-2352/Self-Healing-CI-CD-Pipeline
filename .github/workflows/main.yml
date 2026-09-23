@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+  # Heal PRs (ai-fix-* -> main) get their own CI run, so a wrong-but-parsing fix shows red.
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build-and-test:
@@ -51,11 +55,15 @@ jobs:
     # failure() alone would also fire for infrastructure problems (port already
     # bound, DNS, runner disk). Those have nothing to fix in the source, and the
     # model would invent a bogus patch and open a PR for them.
-    if: failure() && needs.build-and-test.outputs.failure_kind == 'code'
+    # push only: a failing heal PR must not wake the healer again. There is no attempt cap yet,
+    # so allowing pull_request here would let a model that cannot fix a bug loop forever.
+    if: failure() && github.event_name == 'push' && needs.build-and-test.outputs.failure_kind == 'code'
     steps:
       - name: Trigger n8n webhook
+        # The webhook host is a tunnel that is only up while the healer is deployed. When it is
+        # down, warn instead of failing: a dead healer is not a failure of this commit.
         run: |
-          curl -sS -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
+          curl -sS --fail --max-time 20 -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
             -H "X-Webhook-Secret: ${{ secrets.N8N_WEBHOOK_SECRET }}" \
             -d '{
@@ -65,4 +73,4 @@ jobs:
               "commit": "${{ github.sha }}",
               "actor": "${{ github.actor }}",
               "failure_kind": "${{ needs.build-and-test.outputs.failure_kind }}"
-            }'
+            }' || echo "::warning::n8n webhook unreachable - heal not triggered"
