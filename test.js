@@ -26,7 +26,7 @@ function infraFail(err) {
   process.exit(75);
 }
 
-const server = app.lisen(PORT, () => {
+const server = app.listen(PORT, () => {
   http
     .get(`http://localhost:${PORT}`, (res) => {
       if (res.statusCode === 200) {
