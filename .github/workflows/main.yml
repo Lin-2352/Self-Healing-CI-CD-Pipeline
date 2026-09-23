@@ -55,11 +55,49 @@ jobs:
     # failure() alone would also fire for infrastructure problems (port already
     # bound, DNS, runner disk). Those have nothing to fix in the source, and the
     # model would invent a bogus patch and open a PR for them.
-    # push only: a failing heal PR must not wake the healer again. There is no attempt cap yet,
-    # so allowing pull_request here would let a model that cannot fix a bug loop forever.
-    if: failure() && github.event_name == 'push' && needs.build-and-test.outputs.failure_kind == 'code'
+    # Fires on a failing push to main (first heal), and on a failing HEAL PR (retry). Human PRs
+    # (no ai-fix- prefix) never wake the healer.
+    if: >-
+      failure() && needs.build-and-test.outputs.failure_kind == 'code' &&
+      (github.event_name == 'push' || startsWith(github.head_ref, 'ai-fix-'))
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    env:
+      # Total model attempts per heal PR: the first heal plus 2 retries. The counter is the
+      # `Heal-Attempt: N` trailer the healer stamps on every commit it pushes, so it can't be
+      # reset by re-running the workflow, and a model that can't fix a bug stops after this.
+      MAX_ATTEMPTS: 3
     steps:
+      - name: Decide - heal, retry, or give up
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ "$EVENT" = "push" ]; then
+            { echo "branch=$GITHUB_REF_NAME"; echo "commit=$GITHUB_SHA"; echo "attempt=0"; echo "action=heal"; } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # pull_request: judge the PR HEAD commit, not the merge commit github.sha points at
+          msg=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA" --jq .commit.message)
+          attempt=$(printf '%s\n' "$msg" | sed -n 's/^Heal-Attempt: *\([0-9][0-9]*\) *$/\1/p' | tail -n 1)
+          if [ -z "$attempt" ]; then
+            action=none   # a human pushed to the heal branch: they own it now
+            echo "::notice::head commit has no Heal-Attempt trailer - a human pushed; not re-healing"
+          elif [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+            action=giveup
+          else
+            action=heal
+          fi
+          { echo "branch=$HEAD_REF"; echo "commit=$HEAD_SHA"; echo "attempt=${attempt:-0}"; echo "action=$action"; } >> "$GITHUB_OUTPUT"
+          echo "event=$EVENT attempt=${attempt:-none} cap=$MAX_ATTEMPTS -> $action"
+
       - name: Trigger n8n webhook
+        if: steps.decide.outputs.action == 'heal'
         # The webhook host is a tunnel that is only up while the healer is deployed. When it is
         # down, warn instead of failing: a dead healer is not a failure of this commit.
         run: |
@@ -69,8 +107,18 @@ jobs:
             -d '{
               "run_id": "${{ github.run_id }}",
               "repo": "${{ github.repository }}",
-              "branch": "${{ github.ref_name }}",
-              "commit": "${{ github.sha }}",
+              "branch": "${{ steps.decide.outputs.branch }}",
+              "commit": "${{ steps.decide.outputs.commit }}",
               "actor": "${{ github.actor }}",
-              "failure_kind": "${{ needs.build-and-test.outputs.failure_kind }}"
+              "failure_kind": "${{ needs.build-and-test.outputs.failure_kind }}",
+              "attempt": "${{ steps.decide.outputs.attempt }}"
             }' || echo "::warning::n8n webhook unreachable - heal not triggered"
+
+      - name: Give up at the attempt cap
+        if: steps.decide.outputs.action == 'giveup'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "The self-healing pipeline made ${{ steps.decide.outputs.attempt }} attempts and CI still fails, so it has stopped (cap: $MAX_ATTEMPTS). This one needs a human."
+          echo "::warning::heal attempt cap reached (${{ steps.decide.outputs.attempt }}/$MAX_ATTEMPTS) - commented on PR #$PR"
