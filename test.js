@@ -9,7 +9,6 @@
 //   75 - INFRA_FAILURE     : port taken, DNS, etc. Nothing to fix in the source.
 //        (75 = EX_TEMPFAIL, the conventional "try again later" code)
 const express = require("express");
-const http = require("http");
 
 const PORT = Number(process.env.PORT) || 5000;
 
