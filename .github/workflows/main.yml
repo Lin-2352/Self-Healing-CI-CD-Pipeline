@@ -111,7 +111,8 @@ jobs:
               "commit": "${{ steps.decide.outputs.commit }}",
               "actor": "${{ github.actor }}",
               "failure_kind": "${{ needs.build-and-test.outputs.failure_kind }}",
-              "attempt": "${{ steps.decide.outputs.attempt }}"
+              "attempt": "${{ steps.decide.outputs.attempt }}",
+              "pr_number": "${{ github.event.pull_request.number }}"
             }' || echo "::warning::n8n webhook unreachable - heal not triggered"
 
       - name: Give up at the attempt cap
