@@ -28,7 +28,7 @@ function infraFail(err) {
 
 const server = app.listen(PORT, () => {
   http
-    .get(`http://localhost:${PORT}`, (err, res) => {
+    .get(`http://localhost:${PORT}`, (res) => {
       if (res.statusCode === 200) {
         console.log("smoke test passed");
         server.close(() => process.exit(0));
