@@ -15,7 +15,7 @@ const PORT = Number(process.env.PORT) || 5000;
 
 const app = express();
 
-app.get("/", (req, res) => res.send("ok"));
+app.get("/", (req, res) => res.status(500).send("ok"));
 
 function infraFail(err) {
   const hint =
@@ -28,7 +28,7 @@ function infraFail(err) {
 
 const server = app.listen(PORT, () => {
   http
-    .get(`http://localhost:${PORT}`, (res) => {
+    .get(`http://localhost:${PORT}`, (err, res) => {
       if (res.statusCode === 200) {
         console.log("smoke test passed");
         server.close(() => process.exit(0));
