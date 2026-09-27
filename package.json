@@ -4,7 +4,7 @@
   "description": "Demo app for the AI self-healing CI/CD pipeline",
   "main": "index.js",
   "scripts": {
-    "test": "node test.js",
+    "test": "node test.js && node test/api.test.js",
     "build": "node index.js"
   },
   "license": "MIT",
