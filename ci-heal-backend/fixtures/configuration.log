@@ -1,0 +1,7 @@
+2026-11-13T00:00:01Z Run app
+2026-11-13T00:00:02Z python -m app
+2026-11-13T00:00:03Z Loading settings from the environment
+##[error] pydantic_core.ValidationError: 1 validation error for Settings
+##[error] DATABASE_URL
+##[error]   Field required [type=missing]
+##[error] Process completed with exit code 1.

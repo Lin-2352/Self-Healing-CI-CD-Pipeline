@@ -1,0 +1,6 @@
+2026-11-13T00:00:01Z Run tests
+2026-11-13T00:00:02Z pip install -r requirements.txt
+2026-11-13T00:00:08Z pytest -q
+2026-11-13T00:00:12Z tests/test_api.py::test_health
+##[error] requests.exceptions.ConnectionError: HTTPSConnectionPool(host='example.invalid', port=443): Max retries exceeded
+##[error] Process completed with exit code 1.

@@ -1,0 +1,8 @@
+2026-11-13T00:00:01Z Run tests
+2026-11-13T00:00:04Z pytest -q
+2026-11-13T00:00:06Z _________________________ test_value __________________________
+2026-11-13T00:00:06Z def test_value():
+2026-11-13T00:00:06Z     assert value() == 2
+2026-11-13T00:00:06Z E   assert 1 == 2
+##[error] FAILED tests/test_app.py::test_value - assert 1 == 2
+##[error] Process completed with exit code 1.

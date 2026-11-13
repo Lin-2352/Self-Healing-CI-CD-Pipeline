@@ -1,0 +1,6 @@
+2026-11-13T00:00:01Z Run install
+2026-11-13T00:00:02Z python -m pip install -r requirements.txt
+2026-11-13T00:00:06Z Collecting requests==2.31.0
+##[error] ERROR: Could not find a version that satisfies the requirement requests==2.31.0
+##[error] ERROR: No matching distribution found for requests==2.31.0
+##[error] Process completed with exit code 1.
