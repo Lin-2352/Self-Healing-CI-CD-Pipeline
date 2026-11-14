@@ -1,0 +1,56 @@
+preflight: the smoke test must separate golden from every broken case
+  golden -> exit 0                                           PASS 
+  broken missing_app_init       -> exit 1 (code bug, not infra) PASS 
+  broken typo_method            -> exit 1 (code bug, not infra) PASS 
+  broken missing_require        -> exit 1 (code bug, not infra) PASS 
+  broken syntax_missing_brace   -> exit 1 (code bug, not infra) PASS 
+  broken wrong_status_check     -> exit 1 (code bug, not infra) PASS 
+  broken https_protocol_mismatch -> exit 1 (code bug, not infra) PASS 
+  broken callback_arity         -> exit 1 (code bug, not infra) PASS 
+  broken uninterpolated_url     -> exit 1 (code bug, not infra) PASS 
+  broken inverted_status_check  -> exit 1 (code bug, not infra) PASS 
+  broken route_wrong_status     -> exit 1 (code bug, not infra) PASS 
+  broken multi_hunk             -> exit 1 (code bug, not infra) PASS 
+
+prompts built by the REAL node, both arms
+  missing_app_init       A says (log unavailable), B carries the error PASS 
+  missing_app_init       request_body is production's (temp 0.1, thinking off) PASS 
+  typo_method            A says (log unavailable), B carries the error PASS 
+  typo_method            request_body is production's (temp 0.1, thinking off) PASS 
+  missing_require        A says (log unavailable), B carries the error PASS 
+  missing_require        request_body is production's (temp 0.1, thinking off) PASS 
+  syntax_missing_brace   A says (log unavailable), B carries the error PASS 
+  syntax_missing_brace   request_body is production's (temp 0.1, thinking off) PASS 
+  wrong_status_check     A says (log unavailable), B carries the error PASS 
+  wrong_status_check     request_body is production's (temp 0.1, thinking off) PASS 
+  https_protocol_mismatch A says (log unavailable), B carries the error PASS 
+  https_protocol_mismatch request_body is production's (temp 0.1, thinking off) PASS 
+  callback_arity         A says (log unavailable), B carries the error PASS 
+  callback_arity         request_body is production's (temp 0.1, thinking off) PASS 
+  uninterpolated_url     A says (log unavailable), B carries the error PASS 
+  uninterpolated_url     request_body is production's (temp 0.1, thinking off) PASS 
+  inverted_status_check  A says (log unavailable), B carries the error PASS 
+  inverted_status_check  request_body is production's (temp 0.1, thinking off) PASS 
+  route_wrong_status     A says (log unavailable), B carries the error PASS 
+  route_wrong_status     request_body is production's (temp 0.1, thinking off) PASS 
+  multi_hunk             A says (log unavailable), B carries the error PASS 
+  multi_hunk             request_body is production's (temp 0.1, thinking off) PASS 
+
+scoring: known-good edits must score functional, known-bad must not
+  missing_app_init       golden edit -> functional + exact, no cheat PASS 
+  typo_method            golden edit -> functional + exact, no cheat PASS 
+  missing_require        golden edit -> functional + exact, no cheat PASS 
+  syntax_missing_brace   golden edit -> functional + exact, no cheat PASS 
+  wrong_status_check     golden edit -> functional + exact, no cheat PASS 
+  https_protocol_mismatch golden edit -> functional + exact, no cheat PASS 
+  callback_arity         golden edit -> functional + exact, no cheat PASS 
+  uninterpolated_url     golden edit -> functional + exact, no cheat PASS 
+  inverted_status_check  golden edit -> functional + exact, no cheat PASS 
+  route_wrong_status     golden edit -> functional + exact, no cheat PASS 
+  multi_hunk             golden edit -> functional + exact, no cheat PASS 
+  absent SEARCH -> not applied, gate names the reason        PASS 
+  prose reply -> not applied                                 PASS 
+  parsing-but-wrong edit -> applied, functional=False        PASS 
+  REAL captured model responses score functional: 15/15      PASS 
+
+FAILURES: 0

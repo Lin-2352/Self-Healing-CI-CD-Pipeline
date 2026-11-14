@@ -1,0 +1,9 @@
+  (base golden tree)             golden rc=0 PASS
+  helper_throws                  golden=0 broken=1  PASS  | TypeError: clean.toUppercase is not a function
+  readme_first_then_code         golden=0 broken=1  PASS  | CODE_FAILURE: GET /sum?a=2&b=3 -> 200 {"a":2,"b":2,"sum":4} (expected 200 {"a":2,"b":3,"su
+  second_changed_file_buggy      golden=0 broken=1  PASS  | CODE_FAILURE: GET /sum?a=2&b=3 -> 200 {"a":2,"b":3,"sum":-1} (expected 200 {"a":2,"b":3,"s
+  test_exposes_latent_bug        golden=0 broken=1 pre=0  PASS  | TypeError: Cannot read properties of undefined (reading 'toUpperCase')
+  wrong_require_path             golden=0 broken=1  PASS  | Error: Cannot find module '../src/application'
+  signature_changed_caller_not   golden=0 broken=1  PASS  | CODE_FAILURE: GET /sum?a=2&b=3 -> 200 {"sum":null} (expected 200 {"a":2,"b":3,"sum":5})
+
+FAILURES: 0

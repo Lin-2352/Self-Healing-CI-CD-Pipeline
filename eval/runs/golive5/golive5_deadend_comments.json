@@ -1,0 +1,12 @@
+{
+ "commit_comment": {
+  "target": "commit 7d95ab5 (push to main)",
+  "url": "https://github.com/Lin-2352/self-healing-cicd-demo/commit/7d95ab5832bec841d511ca7935435ac70e28c5af#commitcomment-202316820",
+  "body": "**Self-healing pipeline: no fix produced.**\n\nThe automatic heal for this failing commit stopped before pushing a fix:\n\n> Model call failed: getaddrinfo ENOTFOUND roses-receive-monkey-environment.trycloudflare.com [line 18] [line 10]\n\nNo heal PR was opened. A human needs to look at this failure."
+ },
+ "pr_comment": {
+  "target": "PR #37 (retry, attempt 2)",
+  "url": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/37#issuecomment-5860226825",
+  "body": "**Self-healing pipeline: no fix produced.**\n\nHeal attempt 2 on this PR stopped before pushing a fix:\n\n> Model call failed: getaddrinfo ENOTFOUND roses-receive-monkey-environment.trycloudflare.com [line 18] [line 10]\n\nCI is still failing on this branch, and no further automatic attempt will start from this run. A human needs to look."
+ }
+}

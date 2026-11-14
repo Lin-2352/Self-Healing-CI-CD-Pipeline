@@ -1,0 +1,21 @@
+{
+ "endpoint": "Cloudflare quick tunnel -> llama-server (Kaggle 2xT4)",
+ "runs": [
+  {
+   "stream": true,
+   "status": 200,
+   "seconds": 166.5,
+   "completion_tokens": 3600,
+   "complete": true,
+   "body_head": ""
+  },
+  {
+   "stream": false,
+   "status": 524,
+   "seconds": 125.9,
+   "completion_tokens": null,
+   "complete": false,
+   "body_head": "error code: 524\n"
+  }
+ ]
+}

@@ -1,0 +1,15 @@
+  multi    helper_throws                  cands=['src/format.js', 'src/app.js', 'test/api.test.js'] PASS 
+  multi    readme_first_then_code         cands=['src/app.js']             PASS 
+  multi    second_changed_file_buggy      cands=['src/app.js', 'src/format.js'] PASS 
+  multi    test_exposes_latent_bug        cands=['src/format.js', 'src/app.js', 'test/api.test.js'] PASS 
+  multi    wrong_require_path             cands=['test/api.test.js']       PASS 
+  multi    signature_changed_caller_not   cands=['src/format.js']          PASS 
+  control  missing_app_init               cands=['test.js']                PASS 
+  control  typo_method                    cands=['test.js']                PASS 
+  control  missing_require                cands=['test.js']                PASS 
+  control  syntax_missing_brace           cands=['test.js']                PASS 
+  control  wrong_status_check             cands=['test.js']                PASS 
+  fix aimed at a file the model was not shown -> not applied, gate says why PASS 
+  prose reply -> not applied                                               PASS 
+
+FAILURES: 0

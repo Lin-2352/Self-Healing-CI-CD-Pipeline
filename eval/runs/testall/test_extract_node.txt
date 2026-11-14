@@ -1,0 +1,24 @@
+happy paths: every real breakage must yield BYTE-EXACT golden
+  missing_app_init         PASS  blocks=1
+  typo_method              PASS  blocks=1
+  missing_require          PASS  blocks=1
+  syntax_missing_brace     PASS  blocks=1
+  wrong_status_check       PASS  blocks=1
+
+branch + commit trailer (the retry loop's counter)
+  first heal: sha-suffixed branch, trailer 1 PASS  <- ('ai-fix-x-abc1234', 't\n\nHeal-Attempt: 1')
+  retry: SAME branch, trailer 2          PASS  <- ('ai-fix-http-abc1234', 't\n\nHeal-Attempt: 2')
+
+rejections, each matched on its specific error
+  SEARCH text absent                     PASS  <- SEARCH text of block 1 is not in the file: "const nope = 1;"
+  no blocks at all (prose)               PASS  <- no well-formed SEARCH/REPLACE blocks in edits: "here is your fix!"
+  empty SEARCH                           PASS  <- edit block 1 has an empty SEARCH
+  patched file does not parse            PASS  <- patched file does not parse (missing ) after argument list); refus
+  edit is a no-op                        PASS  <- edits applied but the file is unchanged
+  missing edits field                    PASS  <- Model output has no edits field
+  SEARCH matches more than once          PASS  <- SEARCH text of block 1 is not unique (matches >1): "const dup = 1;
+
+REAL model-produced edits (15 captured responses)
+  byte-exact on real model output: 15/15 PASS
+
+FAILURES: 0

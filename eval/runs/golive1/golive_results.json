@@ -1,0 +1,127 @@
+[
+ {
+  "case": "missing_app_init",
+  "started": "2026-09-22T20:10:18.717768+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35778531173
+  },
+  "jobs": {
+   "build-and-test": 14.0,
+   "notify-n8n-on-failure": 4.0
+  },
+  "healed": false,
+  "error": "no PR within timeout",
+  "restore_ci": "success"
+ },
+ {
+  "case": "typo_method",
+  "started": "2026-09-22T20:18:29.724463+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35779436796
+  },
+  "jobs": {
+   "build-and-test": 10.0,
+   "notify-n8n-on-failure": 5.0
+  },
+  "healed": false,
+  "error": "no PR within timeout",
+  "restore_ci": "success"
+ },
+ {
+  "case": "missing_require",
+  "started": "2026-09-22T20:26:50.975269+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35780354574
+  },
+  "jobs": {
+   "build-and-test": 14.0,
+   "notify-n8n-on-failure": 4.0
+  },
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/10",
+  "branch": "ai-fix-missing-http-require-05ee846",
+  "push_to_pr_s": 44.0,
+  "file_parses": true,
+  "file_is_golden": false,
+  "healed": false,
+  "restore_ci": "success"
+ },
+ {
+  "case": "syntax_missing_brace",
+  "started": "2026-09-22T20:28:14.631268+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35780501265
+  },
+  "jobs": {
+   "build-and-test": 14.0,
+   "notify-n8n-on-failure": 5.0
+  },
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/11",
+  "branch": "ai-fix-test-js-missing-brace-ccfe857",
+  "push_to_pr_s": 55.0,
+  "file_parses": true,
+  "file_is_golden": false,
+  "healed": false,
+  "restore_ci": "success"
+ },
+ {
+  "case": "wrong_status_check",
+  "started": "2026-09-22T20:29:56.209674+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35780683118
+  },
+  "jobs": {
+   "build-and-test": 14.0,
+   "notify-n8n-on-failure": 4.0
+  },
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/12",
+  "branch": "ai-fix-smoke-test-status-code-f592174",
+  "push_to_pr_s": 43.0,
+  "file_parses": true,
+  "file_is_golden": false,
+  "healed": false,
+  "restore_ci": "success"
+ },
+ {
+  "case": "missing_app_init",
+  "started": "2026-09-22T20:31:43.226787+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35780882272
+  },
+  "jobs": {
+   "build-and-test": 12.0,
+   "notify-n8n-on-failure": 4.0
+  },
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/13",
+  "branch": "ai-fix-missing-express-init-d14f480",
+  "push_to_pr_s": 42.0,
+  "file_parses": true,
+  "file_is_golden": true,
+  "healed": true,
+  "restore_ci": "success"
+ },
+ {
+  "case": "typo_method",
+  "started": "2026-09-22T20:32:59.917354+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35781022835
+  },
+  "jobs": {
+   "build-and-test": 11.0,
+   "notify-n8n-on-failure": 4.0
+  },
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/14",
+  "branch": "ai-fix-test-typo-bba09cc",
+  "push_to_pr_s": 73.0,
+  "file_parses": true,
+  "file_is_golden": true,
+  "healed": true,
+  "restore_ci": "success"
+ }
+]

@@ -1,0 +1,54 @@
+  17 cases: 5 control, 6 hard, 6 multi                                       PASS 
+  arms per rep: 5 control F + 12 hard/multi x (F, T) = 29 calls              PASS 
+  control  missing_app_init                                                  PASS 
+    first pass asks for no thinking                                          PASS 
+  control  typo_method                                                       PASS 
+    first pass asks for no thinking                                          PASS 
+  control  missing_require                                                   PASS 
+    first pass asks for no thinking                                          PASS 
+  control  syntax_missing_brace                                              PASS 
+    first pass asks for no thinking                                          PASS 
+  control  wrong_status_check                                                PASS 
+    first pass asks for no thinking                                          PASS 
+  hard     https_protocol_mismatch                                           PASS 
+    first pass asks for no thinking                                          PASS 
+  hard     callback_arity                                                    PASS 
+    first pass asks for no thinking                                          PASS 
+  hard     uninterpolated_url                                                PASS 
+    first pass asks for no thinking                                          PASS 
+  hard     inverted_status_check                                             PASS 
+    first pass asks for no thinking                                          PASS 
+  hard     route_wrong_status                                                PASS 
+    first pass asks for no thinking                                          PASS 
+  hard     multi_hunk                                                        PASS 
+    first pass asks for no thinking                                          PASS 
+  multi    helper_throws                                                     PASS 
+    first pass asks for no thinking                                          PASS 
+  multi    readme_first_then_code                                            PASS 
+    first pass asks for no thinking                                          PASS 
+  multi    second_changed_file_buggy                                         PASS 
+    first pass asks for no thinking                                          PASS 
+  multi    test_exposes_latent_bug                                           PASS 
+    first pass asks for no thinking                                          PASS 
+  multi    wrong_require_path                                                PASS 
+    first pass asks for no thinking                                          PASS 
+  multi    signature_changed_caller_not                                      PASS 
+    first pass asks for no thinking                                          PASS 
+  thinking_leak: clean reply = 0                                             PASS 
+  thinking_leak: reasoning_content counted                                   PASS 
+  thinking_leak: inline <think> counted                                      PASS 
+  thinking_leak: unclosed <think> counted                                    PASS 
+  summary counts 24 hard calls, 10 controls                                  PASS 
+  control 9/10 is ineligible                                                 PASS 
+  ranking by F heals                                                         PASS 
+  'slow' (+8 heals, 80% speed) does NOT switch; plus3 (+3, 96%) does         PASS 
+  +2 heals is not enough -> keep baseline                                    PASS 
+  MTP accept 0.3 is ineligible -> keep baseline                              PASS 
+  thinking leaking into fast replies is ineligible                           PASS 
+  a model that never booted is reported ineligible, not dropped              PASS 
+  builder ran                                                                PASS 
+  kernel: no placeholders, multifile helpers inlined                         PASS 
+  kernel models: baseline first, 4 total                                     PASS 
+  metadata: T4 x2, builder attached, internet                                PASS 
+
+FAILURES: 0

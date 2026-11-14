@@ -1,0 +1,8 @@
+  first heal, PR created                               PASS  <- pr_opened
+  retry 2, 422 No commits between (head == base)       PASS  <- retry_pushed
+  retry 3, 422 PR already exists                       PASS  <- retry_pushed
+  re-run of the same commit (attempt 1), PR exists     PASS  <- pr_already_open
+  attempt 1 + No commits between is a REAL failure     PASS  <- Open Pull Request failed: {"error":{"message":"422 - \"{\\\"message\\\
+  401 bad token is a real failure                      PASS  <- Open Pull Request failed: {"error":{"message":"401 - Bad credentials"}
+
+FAILURES: 0

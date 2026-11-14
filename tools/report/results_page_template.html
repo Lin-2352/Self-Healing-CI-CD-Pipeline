@@ -1,0 +1,201 @@
+<title>Qwen3.8 Heal Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F3F5F4; --surface:#FFFFFF; --ink:#15201C; --muted:#56655F; --line:#D6DDD9; --soft:#E9EEEB;
+  --accent:#1D6B63; --good:#2F7D4E; --warn:#9E6310; --bad:#B03A28;
+  --good-bg:#E3F1E8; --warn-bg:#F7EBD6; --bad-bg:#F8E1DC;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cond:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#0E1412; --surface:#151D1A; --ink:#E1E8E5; --muted:#92A19B; --line:#27322E; --soft:#1C2622;
+  --accent:#62B6A9; --good:#5CBA82; --warn:#D9A04A; --bad:#E27C69;
+  --good-bg:#16301F; --warn-bg:#33270F; --bad-bg:#3A1C16;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1412; --surface:#151D1A; --ink:#E1E8E5; --muted:#92A19B; --line:#27322E; --soft:#1C2622;
+  --accent:#62B6A9; --good:#5CBA82; --warn:#D9A04A; --bad:#E27C69;
+  --good-bg:#16301F; --warn-bg:#33270F; --bad-bg:#3A1C16;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans);padding-inline:16px;padding-block:28px 56px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+header{display:flex;flex-direction:column;gap:10px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font:600 clamp(30px,5vw,44px)/1.05 var(--cond);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.verdict{font-size:17px;max-width:68ch;margin:0}
+.meta{font:13px/1.5 var(--mono);color:var(--muted);margin:0}
+h2{font:600 22px/1.2 var(--cond);margin:0;text-wrap:balance}
+.lede{color:var(--muted);max-width:70ch;margin:0}
+section{display:flex;flex-direction:column;gap:14px}
+code{font:13px var(--mono)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;border-top:3px solid var(--line)}
+.tile.good{border-top-color:var(--good)} .tile.warn{border-top-color:var(--warn)} .tile.bad{border-top-color:var(--bad)}
+.tl{font:500 12px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tv{font:600 30px/1.1 var(--cond);font-variant-numeric:tabular-nums}
+.ts{font-size:13px;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font:500 12px/1.3 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--soft);white-space:nowrap}
+tbody tr:last-child td,tbody tr:last-child th{border-bottom:0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sub{color:var(--muted);font-size:13px}
+.na{color:var(--muted)}
+.pill{display:inline-block;font:500 12px/1 var(--mono);padding:5px 8px;border-radius:999px;white-space:nowrap}
+.pill.good{background:var(--good-bg);color:var(--good)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.rig{list-style:none;margin:0;padding:6px 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.rig li{display:flex;gap:10px;padding:8px 16px;font-size:14px}
+.mark{font-weight:600;color:var(--good);width:1em;flex:none}
+.rig li.bad .mark{color:var(--bad)}
+.dots{display:inline-flex;gap:4px}
+.d{width:11px;height:11px;border-radius:50%;display:inline-block}
+.d.y{background:var(--good)} .d.n{background:transparent;box-shadow:inset 0 0 0 2px var(--bad)}
+.matrix th[scope=row]{white-space:nowrap;font-weight:400}
+.matrix td.c{text-align:center}
+.matrix thead th{text-align:center} .matrix thead th:first-child{text-align:left}
+.matrix .grp{border-left:1px solid var(--line)}
+.tag{margin-left:8px;font:500 11px/1 var(--mono);padding:3px 6px;border-radius:4px;vertical-align:1px}
+.tag.e{background:var(--soft);color:var(--muted)} .tag.h{background:var(--warn-bg);color:var(--warn)}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+svg{width:100%;height:auto;display:block}
+svg .grid{stroke:var(--line);stroke-width:1}
+svg .limit{stroke:var(--bad);stroke-width:1.5;stroke-dasharray:4 4}
+svg .axis{fill:var(--muted);font:11px var(--mono)}
+svg .lbl{fill:var(--ink);font:13px var(--sans)}
+svg .val{fill:var(--ink);font:12px var(--mono)}
+svg .range{fill:var(--accent);opacity:.28}
+svg .med{fill:var(--accent)}
+svg .cross{stroke:var(--bad);stroke-width:2.5;fill:none}
+.chart{padding:14px 16px}
+.limits{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;max-width:78ch}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+footer{font:12px/1.6 var(--mono);color:var(--muted)}
+.fixed{border-left:3px solid var(--good);padding-left:16px}
+.cmt{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.cmt figcaption{font:500 12px/1.4 var(--mono);color:var(--muted);background:var(--soft);padding:8px 12px;border-bottom:1px solid var(--line)}
+.cmt figcaption a{color:var(--accent)}
+.cmt div{padding:12px;font-size:14px;overflow-wrap:anywhere}
+s{color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.tile{transition:transform .15s}.tile:hover{transform:translateY(-1px)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Self-healing CI/CD · full test run</div>
+    <h1>Qwen3.8 Heal Report</h1>
+    <p class="verdict">Every automated check passes. The model fixes every easy bug on the first try and two thirds of the hard ones; with thinking on, it fixed all hard bugs in the eval. Latest live run, after the two fixes below: __LIVE_HARD5__. The run before them: __LIVE_HARD__.</p>
+    <p class="meta">Qwen3.8-27B UD-Q4_K_XL · Kaggle 2×T4 (30.7 GB) · llama.cpp, tensor split + MTP · n8n 1.123.81 · repo Lin-2352/self-healing-cicd-demo</p>
+  </header>
+
+  <section aria-labelledby="s-sum">
+    <h2 id="s-sum" hidden>Summary</h2>
+    <div class="tiles">__TILES__</div>
+  </section>
+
+  <section aria-labelledby="s-bake">
+    <h2 id="s-bake">Model bake-off: is there a better Qwen3.8 for this?</h2>
+    <p class="lede">Four Qwen3.8-27B builds with an MTP head, each run on the same production server flags and the same 17 heal cases (5 control, 6 hard, 6 multi-file, two reps). Fast = thinking off, as on a first heal; thinking = as on a retry. The rule was fixed before the data: pass every control, then rank by fast heals, and switch only for 3 or more extra heals at 95% of the speed or better.</p>
+    __BAKEOFF__
+    <p class="lede">All four heal the same 14 of 24 hard calls on the first try, so a different model of this size cannot raise first-pass accuracy. The extra heals come from thinking depth: the fine-tunes think 4 to 6 times less and heal fewer retries. One case, <code>signature_changed_caller_not</code>, fails for every model: the fix belongs in a caller file the model is never shown.</p>
+  </section>
+
+  <section aria-labelledby="s-multi">
+    <h2 id="s-multi">Phase 6: bugs that span files</h2>
+    <p class="lede">The demo app now has <code>src/</code> modules and an API test, so a bug can live in a different file from the one that fails. A new step picks which files the model sees: files in the CI stack trace first, then the commit's changed code files, up to 3. Six cases cover a helper that throws deep in the stack, a non-code first change, a bug in the second changed file, a latent bug reachable only through the stack trace, a wrong import path, and a changed signature whose caller was not updated.</p>
+    __MULTI__
+    <p class="lede">The fast first pass reached a file that can fix the bug in 15 of 18 calls, but twice it fixed the crash instead of matching what the test expects. A retry, which sees the new "expected / got" log, fixed all 6 of those. The 3 misses are one case: the fix belongs in a caller that was never shown. With no stack trace, nothing points to it, so no PR opens and the healer comments instead. By the rule set before the run (the fast pass must heal at least 12 of 18), multi-file healing is not yet declared shipped. Details: <code>docs/results/MULTIFILE_EVAL.md</code>.</p>
+  </section>
+
+  <section aria-labelledby="s-fix" class="fixed">
+    <h2 id="s-fix">Fixed since the last run</h2>
+    <p class="lede">The full test run exposed two defects on <code>callback_arity</code>: a thinking retry ran past the tunnel's 120 s timeout, and the failed retry then left the PR red with no explanation. Both are fixed and retested, on the real n8n engine and live.</p>
+    __FIXES__
+    <div class="panel scroll"><table>
+      <thead><tr><th>Bug (this round)</th><th>Outcome</th><th>Attempts</th><th>Push → PR</th><th>Push → green</th><th>Retry</th><th>Final file</th></tr></thead>
+      <tbody>__LROWS5__</tbody>
+    </table></div>
+    <div class="panel scroll"><table>
+      <thead><tr><th>n8n run</th><th>Status</th><th>Kind</th><th>Model call</th><th>Tokens</th><th>Tok/s</th><th>MTP accept</th></tr></thead>
+      <tbody>__EROWS5__</tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="s-local">
+    <h2 id="s-local">Local tests</h2>
+    <p class="lede">Each workflow step's real code, run outside n8n, then the whole front half of the workflow run inside the real n8n engine against a mock GitHub and model. No GPU, no GitHub writes.</p>
+    <div class="two">
+      <div class="panel scroll"><table>
+        <thead><tr><th>Suite</th><th>Passed</th><th>Failed</th><th>Result</th></tr></thead>
+        <tbody>__SUITES__</tbody>
+      </table></div>
+      <div class="panel">
+        <table><thead><tr><th>Real n8n engine · __RIG_N__</th></tr></thead></table>
+        <ul class="rig">__RIG__</ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-q">
+    <h2 id="s-q">Quality: 11 bugs, 3 tries each</h2>
+    <p class="lede">A fix counts only if the patched file passes the real smoke test. Prompts, patching and safety checks are the production code. Two independent runs: v1 on 2026-09-23 and v2 on this run. A local re-score of every stored answer agreed __AGREE__.</p>
+    <div class="legend"><span><i class="d y"></i> fixed</span><span><i class="d n"></i> not fixed</span><span>A · no CI log</span><span>B · with CI log (production)</span><span>C · CI log + thinking (hard bugs only)</span></div>
+    <div class="panel scroll"><table class="matrix">
+      <thead>
+        <tr><th rowspan="2">Bug</th><th colspan="3" class="grp">v1 · 2026-09-23</th><th colspan="3" class="grp">v2 · this run</th></tr>
+        <tr><th class="grp">A</th><th>B</th><th>C</th><th class="grp">A</th><th>B</th><th>C</th></tr>
+      </thead>
+      <tbody>__QROWS__</tbody>
+    </table></div>
+    <p class="lede">Only change between runs: __V2CHANGE__. Production (B) and thinking (C) results are identical across both runs.</p>
+    <div class="panel scroll"><table>
+      <thead><tr><th>Run</th><th>Mode</th><th>Bugs</th><th>Fixed</th><th>Exact match</th><th>Median time</th><th>Tok/s</th><th>Tokens</th></tr></thead>
+      <tbody>__ARMS__</tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="s-speed">
+    <h2 id="s-speed">Speed</h2>
+    <p class="lede">Endpoint at boot: __DEPLOY__.</p>
+    <div class="panel chart">
+      __CHART__
+    </div>
+    <p class="lede">Bars show the fastest-to-slowest range of one model call, dots the median. The dashed line is the free Cloudflare tunnel's 120 s response timeout. Every call stayed under it except one thinking retry on <code>callback_arity</code>, which ran 125.9 s and was cut off with HTTP 524.</p>
+  </section>
+
+  <section aria-labelledby="s-live">
+    <h2 id="s-live">Live run before the fixes</h2>
+    <p class="lede">Each bug was pushed to <code>main</code>, CI failed, the healer opened a fix PR, and that PR ran its own CI. If it failed, the healer retried on the same branch with thinking on, up to 3 attempts.</p>
+    <div class="panel scroll"><table>
+      <thead><tr><th>Bug</th><th>Outcome</th><th>Attempts</th><th>Push → PR</th><th>Push → green</th><th>Retry</th><th>Final file</th></tr></thead>
+      <tbody>__LROWS__</tbody>
+    </table></div>
+    <div class="panel scroll"><table>
+      <thead><tr><th>n8n run</th><th>Status</th><th>Kind</th><th>Model call</th><th>Tokens</th><th>Tok/s</th><th>MTP accept</th></tr></thead>
+      <tbody>__EROWS__</tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="s-lim">
+    <h2 id="s-lim">Known limits</h2>
+    <ul class="limits">
+      <li><b>Retries can anchor on a wrong first fix.</b> On <code>callback_arity</code> the first fix kept the wrong callback signature, and the retries chased the new error text instead of revisiting it. The next step is a neutral retry prompt, tested offline first.</li>
+      <li><s>A retry that produces no commit is silent.</s> <b>Fixed</b> (see the top of the page): the model call is streamed, and any heal that ends without a fix posts a comment explaining why.</li>
+      <li><b>A failure after the fix is pushed is still not commented.</b> If Create Branch, Push Fix File or Open Pull Request errors, the n8n run fails without a comment. These GitHub calls have not failed in any live round.</li>
+      <li><b>A first fix that does not parse opens no PR</b>, so it never gets a retry.</li>
+      <li><b>Small test surface.</b> All 11 bugs live in one ~50-line Node/Express smoke test. This measures the pipeline's bug types, not general coding ability.</li>
+      <li><b>Kaggle queueing.</b> The eval kernel waited about 2.5 hours for a free T4×2 before it started.</li>
+    </ul>
+  </section>
+
+  <footer>Generated by tools/report/build_results_page.py from eval/runs/testall/, eval/runs/kout_shipped*/, eval/runs/golive4/golive4_* and the n8n execution log. Every figure is read from those files.</footer>
+</div>

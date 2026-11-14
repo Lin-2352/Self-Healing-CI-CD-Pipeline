@@ -1,0 +1,102 @@
+[
+ {
+  "case": "missing_app_init",
+  "started": "2026-09-23T00:14:01.001550+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35801146250
+  },
+  "jobs": {
+   "build-and-test": 15.0,
+   "notify-n8n-on-failure": 39.0
+  },
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/15",
+  "branch": "ai-fix-express-init-2b8eb25",
+  "push_to_pr_s": 84.0,
+  "file_parses": true,
+  "file_is_golden": true,
+  "healed": true,
+  "pr_ci": "success",
+  "restore_ci": "success"
+ },
+ {
+  "case": "typo_method",
+  "started": "2026-09-23T00:16:37.572394+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35801349530
+  },
+  "jobs": {
+   "build-and-test": 11.0,
+   "notify-n8n-on-failure": 4.0
+  },
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/16",
+  "branch": "ai-fix-typo-lisen-528d118",
+  "push_to_pr_s": 40.0,
+  "file_parses": true,
+  "file_is_golden": true,
+  "healed": true,
+  "pr_ci": "success",
+  "restore_ci": "success"
+ },
+ {
+  "case": "missing_require",
+  "started": "2026-09-23T00:18:14.651026+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35801466639
+  },
+  "jobs": {
+   "build-and-test": 13.0,
+   "notify-n8n-on-failure": 5.0
+  },
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/17",
+  "branch": "ai-fix-missing-http-require-8fee5e1",
+  "push_to_pr_s": 42.0,
+  "file_parses": true,
+  "file_is_golden": true,
+  "healed": true,
+  "pr_ci": "success",
+  "restore_ci": "success"
+ },
+ {
+  "case": "syntax_missing_brace",
+  "started": "2026-09-23T00:19:51.623927+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35801583767
+  },
+  "jobs": {
+   "build-and-test": 15.0,
+   "notify-n8n-on-failure": 4.0
+  },
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/18",
+  "branch": "ai-fix-test-js-syntax-6866e1d",
+  "push_to_pr_s": 53.0,
+  "file_parses": true,
+  "file_is_golden": true,
+  "healed": true,
+  "pr_ci": "success",
+  "restore_ci": "success"
+ },
+ {
+  "case": "wrong_status_check",
+  "started": "2026-09-23T00:21:42.826322+00:00",
+  "ci": {
+   "conclusion": "failure",
+   "run_id": 35801721163
+  },
+  "jobs": {
+   "build-and-test": 12.0,
+   "notify-n8n-on-failure": 3.0
+  },
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/19",
+  "branch": "ai-fix-smoke-test-status-1359e97",
+  "push_to_pr_s": 40.0,
+  "file_parses": true,
+  "file_is_golden": true,
+  "healed": true,
+  "pr_ci": "success",
+  "restore_ci": "success"
+ }
+]

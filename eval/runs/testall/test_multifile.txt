@@ -1,0 +1,26 @@
+Pick Candidate Files on real CI output
+  helper_throws                first candidate src/format.js      got ['src/format.js', 'src/app.js', 'test/api.test.js'] PASS 
+  test_exposes_latent_bug      first candidate src/format.js      got ['src/format.js', 'src/app.js', 'test/api.test.js'] PASS 
+  wrong_require_path           first candidate test/api.test.js   got ['test/api.test.js'] PASS 
+  readme_first_then_code       first candidate src/app.js         got ['src/app.js'] PASS 
+  signature_changed_caller_not first candidate src/format.js      got ['src/format.js'] PASS 
+  latent bug: buggy src/format.js reached via the TRACE although the commit changed only the test PASS 
+  two changed files, bug in the SECOND: both are candidates          PASS 
+  never a node_modules path, never more than 3                       PASS 
+  no CI log -> changed code files only (README.md skipped)           PASS 
+  nothing qualifies -> one placeholder item, so the run reaches the failure comment PASS 
+
+Build AI Prompt with several candidate files
+  all 3 files in the prompt, each labelled                           PASS 
+  multi-file header tells the model to fix exactly ONE file and name it PASS 
+  default file_path = first candidate; candidate list recorded       PASS 
+  the stack trace in the prompt points at src/format.js              PASS 
+  single file: prompt byte-identical to the legacy single-file shape (earlier evals still apply) PASS 
+
+Extract AI Response picks the file the model named
+  edits applied to the NAMED file (2nd candidate), result == golden src/format.js PASS 
+  the healed tree passes the real npm test                           PASS 
+  a file the model was NOT shown -> rejected with the list of shown files PASS 
+  a leading './' in file_path is tolerated                           PASS 
+
+FAILURES: 0

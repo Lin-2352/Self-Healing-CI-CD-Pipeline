@@ -1,0 +1,3 @@
+# Byte-exact contracts live here (CRLF workflow JSON, LF golden files and fixtures).
+# Store every file exactly as it is on disk - no line-ending conversion.
+* -text

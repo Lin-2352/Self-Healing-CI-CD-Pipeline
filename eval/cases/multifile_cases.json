@@ -1,0 +1,101 @@
+{
+ "golden_tree": {
+  "test.js": "// Smoke test used by the CI pipeline.\n// Boots the Express server, calls itself over HTTP, and exits non-zero on any\n// failure. A non-zero exit is what triggers the self-healing workflow.\n//\n// Exit codes are deliberately distinct so the pipeline can tell a real code bug\n// from an environment problem:\n//   0  - healthy\n//   1  - CODE_FAILURE      : the app is broken; worth sending to the AI to fix\n//   75 - INFRA_FAILURE     : port taken, DNS, etc. Nothing to fix in the source.\n//        (75 = EX_TEMPFAIL, the conventional \"try again later\" code)\nconst express = require(\"express\");\nconst http = require(\"http\");\n\nconst PORT = Number(process.env.PORT) || 5000;\n\nconst app = express();\n\napp.get(\"/\", (req, res) => res.send(\"ok\"));\n\nfunction infraFail(err) {\n  const hint =\n    err.code === \"EADDRINUSE\"\n      ? `port ${PORT} is already in use`\n      : `${err.code || \"unknown\"}: ${err.message}`;\n  console.error(`INFRA_FAILURE: ${hint} - environment problem, not a code bug`);\n  process.exit(75);\n}\n\nconst server = app.listen(PORT, () => {\n  http\n    .get(`http://localhost:${PORT}`, (res) => {\n      if (res.statusCode === 200) {\n        console.log(\"smoke test passed\");\n        server.close(() => process.exit(0));\n      } else {\n        console.error(`CODE_FAILURE: unexpected status ${res.statusCode}`);\n        server.close(() => process.exit(1));\n      }\n    })\n    .on(\"error\", (err) => {\n      // The server is listening but will not answer itself - that is the app's fault.\n      console.error(`CODE_FAILURE: ${err.message}`);\n      server.close(() => process.exit(1));\n    });\n});\n\n// Fires when the listen() itself fails (EADDRINUSE, EACCES, ...). Without this\n// handler Node throws an unhandled 'error' event and the pipeline would hand the\n// AI a stack trace for a problem that is not in the source at all.\nserver.on(\"error\", infraFail);\n",
+  "src/app.js": "// The demo API. test/api.test.js boots it and checks every route.\nconst express = require(\"express\");\nconst { formatGreeting, formatSum } = require(\"./format\");\n\nconst app = express();\n\napp.get(\"/health\", (req, res) => res.json({ status: \"ok\" }));\n\napp.get(\"/greet/:name\", (req, res) => {\n  res.json({ message: formatGreeting(req.params.name) });\n});\n\napp.get(\"/sum\", (req, res) => {\n  const a = Number(req.query.a);\n  const b = Number(req.query.b);\n  if (Number.isNaN(a) || Number.isNaN(b)) {\n    return res.status(400).json({ error: \"a and b must be numbers\" });\n  }\n  res.json(formatSum(a, b));\n});\n\nmodule.exports = app;\n",
+  "src/format.js": "// Small formatting helpers used by the API routes in src/app.js.\n\nfunction formatGreeting(name) {\n  const clean = String(name).trim();\n  return `Hello, ${clean}!`;\n}\n\nfunction formatSum(a, b) {\n  return { a, b, sum: a + b };\n}\n\nmodule.exports = { formatGreeting, formatSum };\n",
+  "test/api.test.js": "// API test: boots src/app.js and checks each route's status and body.\n// Same exit-code contract as test.js:\n//   0 - all good\n//   1 - CODE_FAILURE  : a route is broken; worth sending to the AI to fix\n//   75 - INFRA_FAILURE : port taken etc. Nothing to fix in the source.\nconst http = require(\"http\");\nconst app = require(\"../src/app\");\n\nconst PORT = Number(process.env.API_PORT) || 5055;\n\nfunction get(path) {\n  return new Promise((resolve, reject) => {\n    http\n      .get(`http://localhost:${PORT}${path}`, (res) => {\n        let body = \"\";\n        res.on(\"data\", (c) => (body += c));\n        res.on(\"end\", () => resolve({ status: res.statusCode, body }));\n      })\n      .on(\"error\", reject);\n  });\n}\n\nconst checks = [\n  [\"/health\", 200, { status: \"ok\" }],\n  [\"/greet/Ada\", 200, { message: \"Hello, Ada!\" }],\n  [\"/sum?a=2&b=3\", 200, { a: 2, b: 3, sum: 5 }],\n  [\"/sum?a=x&b=3\", 400, { error: \"a and b must be numbers\" }],\n];\n\nconst server = app.listen(PORT, async () => {\n  try {\n    for (const [path, status, body] of checks) {\n      const res = await get(path);\n      const got = JSON.parse(res.body || \"null\");\n      if (res.status !== status || JSON.stringify(got) !== JSON.stringify(body)) {\n        console.error(`CODE_FAILURE: GET ${path} -> ${res.status} ${res.body} (expected ${status} ${JSON.stringify(body)})`);\n        server.close(() => process.exit(1));\n        return;\n      }\n    }\n    console.log(`api test passed (${checks.length} routes)`);\n    server.close(() => process.exit(0));\n  } catch (err) {\n    console.error(`CODE_FAILURE: ${err.stack || err.message}`);\n    server.close(() => process.exit(1));\n  }\n});\n\nserver.on(\"error\", (err) => {\n  console.error(`INFRA_FAILURE: ${err.code || \"unknown\"}: ${err.message} - environment problem, not a code bug`);\n  process.exit(75);\n});\n",
+  "package.json": "{\n  \"name\": \"self-healing-cicd-demo\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Demo app for the AI self-healing CI/CD pipeline\",\n  \"main\": \"index.js\",\n  \"scripts\": {\n    \"test\": \"node test.js && node test/api.test.js\",\n    \"build\": \"node index.js\"\n  },\n  \"license\": \"MIT\",\n  \"dependencies\": {\n    \"express\": \"^4.19.2\"\n  }\n}\n"
+ },
+ "cases": [
+  {
+   "name": "helper_throws",
+   "why_hard": "the TypeError is thrown in src/format.js but surfaces as a 500 from src/app.js; the test only sees a status code, the stack trace in the CI log is the only pointer to the helper",
+   "files": {
+    "src/format.js": "// Small formatting helpers used by the API routes in src/app.js.\n\nfunction formatGreeting(name) {\n  const clean = String(name).trim();\n  return `Hello, ${clean.toUppercase()}!`;\n}\n\nfunction formatSum(a, b) {\n  return { a, b, sum: a + b };\n}\n\nmodule.exports = { formatGreeting, formatSum };\n"
+   },
+   "changed": [
+    "src/format.js"
+   ],
+   "fixable_in": [
+    "src/format.js"
+   ]
+  },
+  {
+   "name": "readme_first_then_code",
+   "why_hard": "the commit's first changed file is README.md (not code); the bug is a wrong argument in src/app.js with no stack trace, only a failed assertion",
+   "files": {
+    "README.md": "# self-healing-cicd-demo\n\nDemo app for the self-healing pipeline.\n",
+    "src/app.js": "// The demo API. test/api.test.js boots it and checks every route.\nconst express = require(\"express\");\nconst { formatGreeting, formatSum } = require(\"./format\");\n\nconst app = express();\n\napp.get(\"/health\", (req, res) => res.json({ status: \"ok\" }));\n\napp.get(\"/greet/:name\", (req, res) => {\n  res.json({ message: formatGreeting(req.params.name) });\n});\n\napp.get(\"/sum\", (req, res) => {\n  const a = Number(req.query.a);\n  const b = Number(req.query.b);\n  if (Number.isNaN(a) || Number.isNaN(b)) {\n    return res.status(400).json({ error: \"a and b must be numbers\" });\n  }\n  res.json(formatSum(a, a));\n});\n\nmodule.exports = app;\n"
+   },
+   "changed": [
+    "README.md",
+    "src/app.js"
+   ],
+   "fixable_in": [
+    "src/app.js"
+   ]
+  },
+  {
+   "name": "second_changed_file_buggy",
+   "why_hard": "two code files changed; the harmless one (src/app.js) sorts FIRST, the bug is in the second (src/format.js). The old workflow fixed only the first changed code file",
+   "files": {
+    "src/app.js": "// The demo API (routes only; see src/format.js). test/api.test.js boots it and checks every route.\nconst express = require(\"express\");\nconst { formatGreeting, formatSum } = require(\"./format\");\n\nconst app = express();\n\napp.get(\"/health\", (req, res) => res.json({ status: \"ok\" }));\n\napp.get(\"/greet/:name\", (req, res) => {\n  res.json({ message: formatGreeting(req.params.name) });\n});\n\napp.get(\"/sum\", (req, res) => {\n  const a = Number(req.query.a);\n  const b = Number(req.query.b);\n  if (Number.isNaN(a) || Number.isNaN(b)) {\n    return res.status(400).json({ error: \"a and b must be numbers\" });\n  }\n  res.json(formatSum(a, b));\n});\n\nmodule.exports = app;\n",
+    "src/format.js": "// Small formatting helpers used by the API routes in src/app.js.\n\nfunction formatGreeting(name) {\n  const clean = String(name).trim();\n  return `Hello, ${clean}!`;\n}\n\nfunction formatSum(a, b) {\n  return { a, b, sum: a - b };\n}\n\nmodule.exports = { formatGreeting, formatSum };\n"
+   },
+   "changed": [
+    "src/app.js",
+    "src/format.js"
+   ],
+   "fixable_in": [
+    "src/format.js"
+   ]
+  },
+  {
+   "name": "test_exposes_latent_bug",
+   "why_hard": "the failing commit changed only test/api.test.js; the bug was committed earlier in src/format.js and is reachable only through the stack trace in the CI log",
+   "pre": {
+    "src/format.js": "// Small formatting helpers used by the API routes in src/app.js.\n\nfunction formatGreeting(name) {\n  const clean = String(name).trim();\n  const cap = clean.split(\"-\").map((p) => p[0].toUpperCase() + p.slice(1)).join(\"-\");\n  return `Hello, ${cap}!`;\n}\n\nfunction formatSum(a, b) {\n  return { a, b, sum: a + b };\n}\n\nmodule.exports = { formatGreeting, formatSum };\n"
+   },
+   "files": {
+    "src/format.js": "// Small formatting helpers used by the API routes in src/app.js.\n\nfunction formatGreeting(name) {\n  const clean = String(name).trim();\n  const cap = clean.split(\"-\").map((p) => p[0].toUpperCase() + p.slice(1)).join(\"-\");\n  return `Hello, ${cap}!`;\n}\n\nfunction formatSum(a, b) {\n  return { a, b, sum: a + b };\n}\n\nmodule.exports = { formatGreeting, formatSum };\n",
+    "test/api.test.js": "// API test: boots src/app.js and checks each route's status and body.\n// Same exit-code contract as test.js:\n//   0 - all good\n//   1 - CODE_FAILURE  : a route is broken; worth sending to the AI to fix\n//   75 - INFRA_FAILURE : port taken etc. Nothing to fix in the source.\nconst http = require(\"http\");\nconst app = require(\"../src/app\");\n\nconst PORT = Number(process.env.API_PORT) || 5055;\n\nfunction get(path) {\n  return new Promise((resolve, reject) => {\n    http\n      .get(`http://localhost:${PORT}${path}`, (res) => {\n        let body = \"\";\n        res.on(\"data\", (c) => (body += c));\n        res.on(\"end\", () => resolve({ status: res.statusCode, body }));\n      })\n      .on(\"error\", reject);\n  });\n}\n\nconst checks = [\n  [\"/health\", 200, { status: \"ok\" }],\n  [\"/greet/Ada\", 200, { message: \"Hello, Ada!\" }],\n  [\"/greet/ada--lovelace\", 200, { message: \"Hello, ada--lovelace!\" }],\n  [\"/sum?a=2&b=3\", 200, { a: 2, b: 3, sum: 5 }],\n  [\"/sum?a=x&b=3\", 400, { error: \"a and b must be numbers\" }],\n];\n\nconst server = app.listen(PORT, async () => {\n  try {\n    for (const [path, status, body] of checks) {\n      const res = await get(path);\n      const got = JSON.parse(res.body || \"null\");\n      if (res.status !== status || JSON.stringify(got) !== JSON.stringify(body)) {\n        console.error(`CODE_FAILURE: GET ${path} -> ${res.status} ${res.body} (expected ${status} ${JSON.stringify(body)})`);\n        server.close(() => process.exit(1));\n        return;\n      }\n    }\n    console.log(`api test passed (${checks.length} routes)`);\n    server.close(() => process.exit(0));\n  } catch (err) {\n    console.error(`CODE_FAILURE: ${err.stack || err.message}`);\n    server.close(() => process.exit(1));\n  }\n});\n\nserver.on(\"error\", (err) => {\n  console.error(`INFRA_FAILURE: ${err.code || \"unknown\"}: ${err.message} - environment problem, not a code bug`);\n  process.exit(75);\n});\n"
+   },
+   "changed": [
+    "test/api.test.js"
+   ],
+   "golden": {
+    "test/api.test.js": "// API test: boots src/app.js and checks each route's status and body.\n// Same exit-code contract as test.js:\n//   0 - all good\n//   1 - CODE_FAILURE  : a route is broken; worth sending to the AI to fix\n//   75 - INFRA_FAILURE : port taken etc. Nothing to fix in the source.\nconst http = require(\"http\");\nconst app = require(\"../src/app\");\n\nconst PORT = Number(process.env.API_PORT) || 5055;\n\nfunction get(path) {\n  return new Promise((resolve, reject) => {\n    http\n      .get(`http://localhost:${PORT}${path}`, (res) => {\n        let body = \"\";\n        res.on(\"data\", (c) => (body += c));\n        res.on(\"end\", () => resolve({ status: res.statusCode, body }));\n      })\n      .on(\"error\", reject);\n  });\n}\n\nconst checks = [\n  [\"/health\", 200, { status: \"ok\" }],\n  [\"/greet/Ada\", 200, { message: \"Hello, Ada!\" }],\n  [\"/greet/ada--lovelace\", 200, { message: \"Hello, ada--lovelace!\" }],\n  [\"/sum?a=2&b=3\", 200, { a: 2, b: 3, sum: 5 }],\n  [\"/sum?a=x&b=3\", 400, { error: \"a and b must be numbers\" }],\n];\n\nconst server = app.listen(PORT, async () => {\n  try {\n    for (const [path, status, body] of checks) {\n      const res = await get(path);\n      const got = JSON.parse(res.body || \"null\");\n      if (res.status !== status || JSON.stringify(got) !== JSON.stringify(body)) {\n        console.error(`CODE_FAILURE: GET ${path} -> ${res.status} ${res.body} (expected ${status} ${JSON.stringify(body)})`);\n        server.close(() => process.exit(1));\n        return;\n      }\n    }\n    console.log(`api test passed (${checks.length} routes)`);\n    server.close(() => process.exit(0));\n  } catch (err) {\n    console.error(`CODE_FAILURE: ${err.stack || err.message}`);\n    server.close(() => process.exit(1));\n  }\n});\n\nserver.on(\"error\", (err) => {\n  console.error(`INFRA_FAILURE: ${err.code || \"unknown\"}: ${err.message} - environment problem, not a code bug`);\n  process.exit(75);\n});\n"
+   },
+   "fixable_in": [
+    "src/format.js"
+   ]
+  },
+  {
+   "name": "wrong_require_path",
+   "why_hard": "the test cannot even load the app: 'Cannot find module ../src/application'; the fix is in the test file, not in the code it tests",
+   "files": {
+    "test/api.test.js": "// API test: boots src/app.js and checks each route's status and body.\n// Same exit-code contract as test.js:\n//   0 - all good\n//   1 - CODE_FAILURE  : a route is broken; worth sending to the AI to fix\n//   75 - INFRA_FAILURE : port taken etc. Nothing to fix in the source.\nconst http = require(\"http\");\nconst app = require(\"../src/application\");\n\nconst PORT = Number(process.env.API_PORT) || 5055;\n\nfunction get(path) {\n  return new Promise((resolve, reject) => {\n    http\n      .get(`http://localhost:${PORT}${path}`, (res) => {\n        let body = \"\";\n        res.on(\"data\", (c) => (body += c));\n        res.on(\"end\", () => resolve({ status: res.statusCode, body }));\n      })\n      .on(\"error\", reject);\n  });\n}\n\nconst checks = [\n  [\"/health\", 200, { status: \"ok\" }],\n  [\"/greet/Ada\", 200, { message: \"Hello, Ada!\" }],\n  [\"/sum?a=2&b=3\", 200, { a: 2, b: 3, sum: 5 }],\n  [\"/sum?a=x&b=3\", 400, { error: \"a and b must be numbers\" }],\n];\n\nconst server = app.listen(PORT, async () => {\n  try {\n    for (const [path, status, body] of checks) {\n      const res = await get(path);\n      const got = JSON.parse(res.body || \"null\");\n      if (res.status !== status || JSON.stringify(got) !== JSON.stringify(body)) {\n        console.error(`CODE_FAILURE: GET ${path} -> ${res.status} ${res.body} (expected ${status} ${JSON.stringify(body)})`);\n        server.close(() => process.exit(1));\n        return;\n      }\n    }\n    console.log(`api test passed (${checks.length} routes)`);\n    server.close(() => process.exit(0));\n  } catch (err) {\n    console.error(`CODE_FAILURE: ${err.stack || err.message}`);\n    server.close(() => process.exit(1));\n  }\n});\n\nserver.on(\"error\", (err) => {\n  console.error(`INFRA_FAILURE: ${err.code || \"unknown\"}: ${err.message} - environment problem, not a code bug`);\n  process.exit(75);\n});\n"
+   },
+   "changed": [
+    "test/api.test.js"
+   ],
+   "fixable_in": [
+    "test/api.test.js"
+   ]
+  },
+  {
+   "name": "signature_changed_caller_not",
+   "why_hard": "formatSum now takes an object, but src/app.js still passes two numbers; no exception, just a wrong body. Fixable on either side of the call",
+   "files": {
+    "src/format.js": "// Small formatting helpers used by the API routes in src/app.js.\n\nfunction formatGreeting(name) {\n  const clean = String(name).trim();\n  return `Hello, ${clean}!`;\n}\n\nfunction formatSum({ a, b }) {\n  return { a, b, sum: a + b };\n}\n\nmodule.exports = { formatGreeting, formatSum };\n"
+   },
+   "changed": [
+    "src/format.js"
+   ],
+   "fixable_in": [
+    "src/format.js",
+    "src/app.js"
+   ]
+  }
+ ]
+}

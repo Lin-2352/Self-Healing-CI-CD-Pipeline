@@ -1,0 +1,27 @@
+# The demo repo is its own git repository (Lin-2352/self-healing-cicd-demo).
+/app/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# CUDA server binaries that Kaggle ships inside kernel outputs - rebuilt by linsxav/llama-server-builder
+eval/**/bin/
+
+# Generated state of the real-n8n verify rig (rebuilt by build_wf.py / drive_full.py)
+tools/n8n_rig/n8nhome*/
+tools/n8n_rig/out_full.json
+tools/n8n_rig/scenario.json
+tools/n8n_rig/last_request.json
+tools/n8n_rig/log_hit.json
+tools/n8n_rig/blob_auth.json
+tools/n8n_rig/comment_post.json
+tools/n8n_rig/exported_full.json
+tools/n8n_rig/wf_full.json
+tools/n8n_rig/mock2.pid
+
+# Secrets never live here (they are in %LOCALAPPDATA%\selfheal-n8n); guard anyway
+*.env
+secrets.json
+_creds_plain.json
+tools/n8n_rig/contents_hits.json

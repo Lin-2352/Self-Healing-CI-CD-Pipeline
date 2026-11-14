@@ -1,0 +1,59 @@
+real job log -> trimmed failure region
+  node ran                                             PASS 
+  user message has the real error                      PASS 
+  user message has the failing source line             PASS 
+  CI log section present                               PASS 
+  no runner timestamps left                            PASS 
+  no ANSI codes left                                   PASS 
+  no ##[ control lines left                            PASS 
+  no checkout-path noise                               PASS 
+  post-job cleanup excluded                            PASS 
+  step script (before endgroup) excluded               PASS 
+  within 40 lines / 3000 chars                         PASS 
+  system message byte-equal to SYSTEM_PROMPT           PASS 
+  pr_body cap is in the system prompt                  PASS 
+  cache_prompt on                                      PASS 
+  model call is streamed (no 120 s tunnel timeout)     PASS 
+
+  trimmed log (17 lines, 456 chars):
+    > self-healing-cicd-demo@1.0.0 test
+    > node test.js
+    
+    test.js:29
+      http
+      ^
+    
+    ReferenceError: http is not defined
+        at Server.<anonymous> (test.js:29:3)
+        at Object.onceWrapper (node:events:638:28)
+        at Server.emit (node:events:536:35)
+        at emitListeningNT (node:net:1951:10)
+        at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+    
+    Node.js v20.20.2
+    npm test exited 1 -> failure_kind=code
+    Process completed with exit code 1.
+
+degraded inputs -> '(log unavailable)', prompt still builds
+  log fetch 404 (error item)                           PASS 
+  empty log                                            PASS 
+  log with no ##[error] marker                         PASS 
+  API 404, no Location (download errors)               PASS 
+  API answers 200 directly -> its body is the log      PASS 
+
+long log -> tail kept within caps
+  tail kept (last line present)                        PASS 
+  caps hold                                            PASS 
+
+retry (CI failed on the healer's own PR)
+  attempt 1 on ai-fix branch -> is_retry, attempt=1    PASS 
+  prompt tells the model it is attempt 2 and the file has the previous fix PASS 
+  retry turns thinking ON                              PASS 
+  first heal (no attempt field) -> not a retry, no attempt line PASS 
+  first heal keeps thinking OFF                        PASS 
+  attempt on a NON ai-fix branch -> not treated as a retry PASS 
+
+infra failure still refused before any model call
+  infra refused                                        PASS 
+
+FAILURES: 0

@@ -1,0 +1,133 @@
+[
+ {
+  "case": "callback_arity",
+  "started": "2026-09-23T11:01:06.780709+00:00",
+  "main_ci": "failure",
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/22",
+  "branch": "ai-fix-test-http-error-f82587a",
+  "push_to_first_pr_s": 45.0,
+  "outcome": "gave_up",
+  "attempts": [
+   1,
+   2,
+   3
+  ],
+  "final_smoke_rc": 1,
+  "final_is_golden": false,
+  "restore_ci": "success"
+ },
+ {
+  "case": "multi_hunk",
+  "started": "2026-09-23T11:06:26.227245+00:00",
+  "main_ci": "failure",
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/23",
+  "branch": "ai-fix-express-status-code-22b291b",
+  "push_to_first_pr_s": 44.0,
+  "outcome": "green",
+  "push_to_green_s": 161.0,
+  "attempts": [
+   1,
+   2
+  ],
+  "final_smoke_rc": 0,
+  "final_is_golden": false,
+  "restore_ci": "success"
+ },
+ {
+  "case": "missing_app_init",
+  "started": "2026-09-23T11:09:48.569242+00:00",
+  "main_ci": "failure",
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/24",
+  "branch": "ai-fix-missing-express-init-ae5be8d",
+  "push_to_first_pr_s": 43.0,
+  "outcome": "green",
+  "push_to_green_s": 62.0,
+  "attempts": [
+   1
+  ],
+  "final_smoke_rc": 0,
+  "final_is_golden": true,
+  "restore_ci": "success"
+ },
+ {
+  "case": "typo_method",
+  "started": "2026-09-23T11:11:45.637016+00:00",
+  "main_ci": "failure",
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/25",
+  "branch": "ai-fix-test-listen-typo-b07d833",
+  "push_to_first_pr_s": 40.0,
+  "outcome": "green",
+  "push_to_green_s": 59.0,
+  "attempts": [
+   1
+  ],
+  "final_smoke_rc": 0,
+  "final_is_golden": true,
+  "restore_ci": "success"
+ },
+ {
+  "case": "missing_require",
+  "started": "2026-09-23T11:13:24.530197+00:00",
+  "main_ci": "failure",
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/26",
+  "branch": "ai-fix-missing-http-require-2077a80",
+  "push_to_first_pr_s": 43.0,
+  "outcome": "green",
+  "push_to_green_s": 66.0,
+  "attempts": [
+   1
+  ],
+  "final_smoke_rc": 0,
+  "final_is_golden": true,
+  "restore_ci": "success"
+ },
+ {
+  "case": "syntax_missing_brace",
+  "started": "2026-09-23T11:15:22.188383+00:00",
+  "main_ci": "failure",
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/27",
+  "branch": "ai-fix-test-js-syntax-bc2d100",
+  "push_to_first_pr_s": 84.0,
+  "outcome": "green",
+  "push_to_green_s": 103.0,
+  "attempts": [
+   1
+  ],
+  "final_smoke_rc": 0,
+  "final_is_golden": true,
+  "restore_ci": "success"
+ },
+ {
+  "case": "wrong_status_check",
+  "started": "2026-09-23T11:17:57.836414+00:00",
+  "main_ci": "failure",
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/28",
+  "branch": "ai-fix-smoke-test-status-dc31333",
+  "push_to_first_pr_s": 44.0,
+  "outcome": "green",
+  "push_to_green_s": 64.0,
+  "attempts": [
+   1
+  ],
+  "final_smoke_rc": 0,
+  "final_is_golden": true,
+  "restore_ci": "success"
+ },
+ {
+  "case": "multi_hunk",
+  "started": "2026-09-23T11:21:41.784341+00:00",
+  "main_ci": "failure",
+  "pr": "https://github.com/Lin-2352/self-healing-cicd-demo/pull/29",
+  "branch": "ai-fix-express-status-code-2eb5abc",
+  "push_to_first_pr_s": 44.0,
+  "outcome": "green",
+  "push_to_green_s": 151.0,
+  "attempts": [
+   1,
+   2
+  ],
+  "final_smoke_rc": 0,
+  "final_is_golden": false,
+  "restore_ci": "success"
+ }
+]

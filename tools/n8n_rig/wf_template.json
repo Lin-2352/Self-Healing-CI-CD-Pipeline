@@ -1,0 +1,121 @@
+{
+  "name": "verify-extract",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "t",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:5791/file",
+        "options": {}
+      },
+      "id": "f",
+      "name": "Fetch File Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { repo: 'demo/app', commit: 'abc1234def5678', branch: 'main', file_path: 'test.js' }, pairedItem: { item: 0 } }];"
+      },
+      "id": "b",
+      "name": "Build AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:5791/model",
+        "options": {}
+      },
+      "id": "q",
+      "name": "Qwen3.8 Analyze",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the model's reply into a clean object and base64-encode the fix for the GitHub API.\nconst resp = $input.first().json;\n\nlet text = resp?.choices?.[0]?.message?.content;\nif (!text) throw new Error('Model returned no content: ' + JSON.stringify(resp).slice(0, 500));\n\n// Qwen3.8 is a hybrid-reasoning model - drop any <think> trace before parsing.\ntext = text.replace(/<think>[\\s\\S]*?<\\/think>/g, '');\ntext = text.replace(/^[\\s\\S]*?<\\/think>/, '');       // unclosed trace\ntext = text.replace(/```(?:json)?/g, '').trim();     // strip stray fences\n\nlet obj;\ntry {\n  obj = JSON.parse(text);\n} catch (e) {\n  const m = text.match(/\\{[\\s\\S]*\\}/);\n  if (!m) throw new Error('No JSON object in model output: ' + text.slice(0, 500));\n  obj = JSON.parse(m[0]);\n}\n\nif (!obj.edits) throw new Error('Model output has no edits field');\n\n// ---------------------------------------------------------------------------\n// Apply the SEARCH/REPLACE blocks to the CURRENT file.\n//\n// The original source is already in the graph - `Fetch File Content` requests it with\n// `Accept: application/vnd.github.raw`, so it arrives as plain text. No extra HTTP call is\n// needed here (Build AI Prompt reads it exactly the same way).\n//\n// Measured in DIFF_FORMAT_EVAL.md: this format emits 171 median tokens vs 655 for whole-file\n// (3.8x) at 15/15 byte-exact. The EXACTLY-ONCE rule below is what made it byte-exact - the\n// unified-diff alternative applied \"cleanly\" and still produced a file that did not parse.\n// ---------------------------------------------------------------------------\nlet original = $('Fetch File Content').first().json;\nif (typeof original === 'object') original = original.data ?? original.body ?? '';\noriginal = String(original ?? '');\nif (!original) throw new Error('Fetch File Content returned nothing; cannot apply edits');\n\nconst SR_RE = /<{5,}\\s*SEARCH\\s*\\n([\\s\\S]*?)\\n?={5,}\\s*\\n([\\s\\S]*?)\\n?>{5,}\\s*REPLACE/g;\nlet patched = original;\nlet applied = 0;\nlet m;\nwhile ((m = SR_RE.exec(obj.edits)) !== null) {\n  const search = m[1];\n  const replace = m[2];\n  if (!search) throw new Error('edit block ' + (applied + 1) + ' has an empty SEARCH');\n  const at = patched.indexOf(search);\n  // Reject rather than guess. A SEARCH that matches nothing means the model invented context;\n  // one that matches twice means we would be patching an arbitrary occurrence.\n  if (at === -1) {\n    throw new Error('SEARCH text of block ' + (applied + 1) + ' is not in the file: ' +\n                    JSON.stringify(search.slice(0, 120)));\n  }\n  if (patched.indexOf(search, at + 1) !== -1) {\n    throw new Error('SEARCH text of block ' + (applied + 1) + ' is not unique (matches >1): ' +\n                    JSON.stringify(search.slice(0, 120)));\n  }\n  patched = patched.slice(0, at) + replace + patched.slice(at + search.length);\n  applied++;\n}\nif (applied === 0) {\n  throw new Error('no well-formed SEARCH/REPLACE blocks in edits: ' +\n                  JSON.stringify(String(obj.edits).slice(0, 300)));\n}\nif (patched === original) throw new Error('edits applied but the file is unchanged');\n\n// Syntax gate. `node --check` does not exist inside the n8n Code sandbox, but `new Function`\n// forces a full parse WITHOUT executing, which is what we need. Skipping this check is exactly\n// how the diff-format eval let a non-parsing file through to a PR: CI red, PR merged-looking,\n// nothing healed - worse than not healing, because it looks like it worked.\n//\n// SCOPE: this gates PARSE errors only. An edit that anchors somewhere valid-but-wrong produces\n// a file that parses perfectly and still fails the build; no parser can see that. The real\n// correctness gate is CI running on the branch, which already happens. This check is the cheap\n// first filter, not a proof of correctness.\ntry {\n  new Function(patched);\n} catch (e) {\n  throw new Error('patched file does not parse (' + e.message + '); refusing to open a PR');\n}\n\nobj.fixed_code = patched;\nobj._edits_applied = applied;\nif (!obj.branch_name || /^(main|master)$/i.test(obj.branch_name)) {\n  obj.branch_name = 'ai-fix-' + Date.now();\n}\n\nconst prev = $('Build AI Prompt').first().json;\n\n// The model names the branch after the bug, so the SAME failure twice produces the SAME\n// branch name and `Create Branch` dies with 422 \"Reference already exists\" - after the\n// model call has already been paid for. Suffixing the commit sha separates *different*\n// commits, which is the recurring-failure case that broke Phase D.\n// It does NOT make the name globally unique: re-running the SAME commit lands on the same\n// branch again (measured). That case is handled by `Create Branch` tolerating the 422 and\n// `Branch Ready` triaging it, so the heal updates the branch in place.\nconst shortSha = String(prev.commit || '').slice(0, 7);\nif (shortSha && !obj.branch_name.endsWith(shortSha)) {\n  obj.branch_name = obj.branch_name + '-' + shortSha;\n}\n\nreturn [{ json: {\n  branch_name: obj.branch_name,\n  file_path:   obj.file_path || prev.file_path,\n  fixed_code:  obj.fixed_code,\n  pr_title:    obj.pr_title || 'AI fix: CI failure',\n  pr_body:     obj.pr_body  || 'Automated fix generated from the CI failure logs.',\n  base64_content: Buffer.from(obj.fixed_code, 'utf8').toString('base64'),\n  // How many SEARCH/REPLACE blocks were applied. Surfaced so real heals can be counted:\n  // the whole-file fallback is only worth building if the reject rate turns out material\n  // (break-even is ~0.70), and that rate is currently unmeasured.\n  edits_applied: obj._edits_applied,\n  repo:   prev.repo,\n  commit: prev.commit,\n  branch: prev.branch\n// pairedItem is correct practice, but it was NOT the cause of the empty-URL bug - that was\n// the isolate/vm2 clone boundary, fixed by using $node[...] downstream. See the note on the\n// `Get File SHA` node. Every field below is a PRIMITIVE on purpose: $node[...] resolves\n// primitives on the host, whereas nested objects come back as clone metadata.\n}, pairedItem: { item: 0 } }];"
+      },
+      "id": "extract-ai-response",
+      "name": "Extract AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Fetch File Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch File Content": {
+      "main": [
+        [
+          {
+            "node": "Build AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "Qwen3.8 Analyze",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qwen3.8 Analyze": {
+      "main": [
+        [
+          {
+            "node": "Extract AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "id": "vrfyExtract00001"
+}

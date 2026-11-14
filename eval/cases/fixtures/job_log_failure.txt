@@ -1,0 +1,199 @@
+﻿2026-09-22T20:27:01.7495461Z Current runner version: '2.337.0'
+2026-09-22T20:27:01.7532747Z ##[group]Runner Image Provisioner
+2026-09-22T20:27:01.7534314Z Hosted Compute Agent
+2026-09-22T20:27:01.7535308Z Version: 20260828.587
+2026-09-22T20:27:01.7536414Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-22T20:27:01.7537833Z Build Date: 2026-08-28T16:44:25Z
+2026-09-22T20:27:01.7538976Z Worker ID: {c1cadc53-230b-4757-b3ef-06fe3cee731a}
+2026-09-22T20:27:01.7540167Z Azure Region: westus
+2026-09-22T20:27:01.7541238Z ##[endgroup]
+2026-09-22T20:27:01.7544306Z ##[group]Operating System
+2026-09-22T20:27:01.7545495Z Ubuntu
+2026-09-22T20:27:01.7546397Z 24.04.5
+2026-09-22T20:27:01.7547296Z LTS
+2026-09-22T20:27:01.7548257Z ##[endgroup]
+2026-09-22T20:27:01.7549263Z ##[group]Runner Image
+2026-09-22T20:27:01.7550463Z Image: ubuntu-24.04
+2026-09-22T20:27:01.7551849Z Version: 20260907.300.1
+2026-09-22T20:27:01.7554230Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+2026-09-22T20:27:01.7557147Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+2026-09-22T20:27:01.7559089Z ##[endgroup]
+2026-09-22T20:27:01.7561281Z ##[group]GITHUB_TOKEN Permissions
+2026-09-22T20:27:01.7565014Z Contents: read
+2026-09-22T20:27:01.7566164Z Metadata: read
+2026-09-22T20:27:01.7567201Z Packages: read
+2026-09-22T20:27:01.7568322Z ##[endgroup]
+2026-09-22T20:27:01.7571306Z Secret source: Actions
+2026-09-22T20:27:01.7573390Z Cache mode: write
+2026-09-22T20:27:01.7574705Z Prepare workflow directory
+2026-09-22T20:27:01.8102522Z Prepare all required actions
+2026-09-22T20:27:01.8176466Z Getting action download info
+2026-09-22T20:27:02.2429617Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-09-22T20:27:02.3658996Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-09-22T20:27:02.5722542Z Complete job name: build-and-test
+2026-09-22T20:27:02.6487071Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-22T20:27:02.6496163Z ##[group]Run actions/checkout@v4
+2026-09-22T20:27:02.6496908Z with:
+2026-09-22T20:27:02.6497398Z   repository: Lin-2352/self-healing-cicd-demo
+2026-09-22T20:27:02.6501093Z   token: ***
+2026-09-22T20:27:02.6501744Z   ssh-strict: true
+2026-09-22T20:27:02.6502199Z   ssh-user: git
+2026-09-22T20:27:02.6502654Z   persist-credentials: true
+2026-09-22T20:27:02.6503149Z   clean: true
+2026-09-22T20:27:02.6503597Z   sparse-checkout-cone-mode: true
+2026-09-22T20:27:02.6504123Z   fetch-depth: 1
+2026-09-22T20:27:02.6504558Z   fetch-tags: false
+2026-09-22T20:27:02.6505012Z   show-progress: true
+2026-09-22T20:27:02.6505461Z   lfs: false
+2026-09-22T20:27:02.6505908Z   submodules: false
+2026-09-22T20:27:02.6506376Z   set-safe-directory: true
+2026-09-22T20:27:02.6506892Z   allow-unsafe-pr-checkout: false
+2026-09-22T20:27:02.6507686Z ##[endgroup]
+2026-09-22T20:27:02.7679326Z Syncing repository: Lin-2352/self-healing-cicd-demo
+2026-09-22T20:27:02.7683151Z ##[group]Getting Git version info
+2026-09-22T20:27:02.7685083Z Working directory is '/home/runner/work/self-healing-cicd-demo/self-healing-cicd-demo'
+2026-09-22T20:27:02.7707210Z [command]/usr/bin/git version
+2026-09-22T20:27:02.7835899Z git version 2.55.0
+2026-09-22T20:27:02.9154299Z ##[endgroup]
+2026-09-22T20:27:02.9193502Z Temporarily overriding HOME='/home/runner/work/_temp/317f33fa-5199-470d-8dc4-e39b92f724a2' before making global git config changes
+2026-09-22T20:27:02.9224580Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-22T20:27:02.9233751Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-healing-cicd-demo/self-healing-cicd-demo
+2026-09-22T20:27:02.9478634Z Deleting the contents of '/home/runner/work/self-healing-cicd-demo/self-healing-cicd-demo'
+2026-09-22T20:27:02.9481255Z ##[group]Initializing the repository
+2026-09-22T20:27:02.9527417Z [command]/usr/bin/git init /home/runner/work/self-healing-cicd-demo/self-healing-cicd-demo
+2026-09-22T20:27:02.9529880Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-22T20:27:02.9535502Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-22T20:27:02.9537203Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-22T20:27:02.9538496Z hint: call:
+2026-09-22T20:27:02.9539212Z hint:
+2026-09-22T20:27:02.9540074Z hint: 	git config --global init.defaultBranch <name>
+2026-09-22T20:27:02.9541191Z hint:
+2026-09-22T20:27:02.9542750Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-22T20:27:02.9544518Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-22T20:27:02.9545791Z hint:
+2026-09-22T20:27:02.9546535Z hint: 	git branch -m <name>
+2026-09-22T20:27:02.9547470Z hint:
+2026-09-22T20:27:02.9548580Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-22T20:27:02.9550627Z Initialized empty Git repository in /home/runner/work/self-healing-cicd-demo/self-healing-cicd-demo/.git/
+2026-09-22T20:27:02.9554586Z [command]/usr/bin/git remote add origin https://github.com/Lin-2352/self-healing-cicd-demo
+2026-09-22T20:27:02.9557496Z ##[endgroup]
+2026-09-22T20:27:02.9558748Z ##[group]Disabling automatic garbage collection
+2026-09-22T20:27:02.9559906Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-22T20:27:02.9562512Z ##[endgroup]
+2026-09-22T20:27:02.9563758Z ##[group]Setting up auth
+2026-09-22T20:27:02.9564978Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-22T20:27:02.9569150Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-22T20:27:02.9574113Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-22T20:27:02.9578588Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-22T20:27:02.9646704Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-22T20:27:02.9707259Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-22T20:27:02.9943813Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-22T20:27:02.9986116Z ##[endgroup]
+2026-09-22T20:27:02.9988290Z ##[group]Fetching the repository
+2026-09-22T20:27:02.9998846Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +05ee8466fa7b3c3ee0482e29c9cc1fff0504aa19:refs/remotes/origin/main
+2026-09-22T20:27:03.4525340Z From https://github.com/Lin-2352/self-healing-cicd-demo
+2026-09-22T20:27:03.4527791Z  * [new ref]         05ee8466fa7b3c3ee0482e29c9cc1fff0504aa19 -> origin/main
+2026-09-22T20:27:03.4535422Z ##[endgroup]
+2026-09-22T20:27:03.4537523Z ##[group]Determining the checkout info
+2026-09-22T20:27:03.4540190Z ##[endgroup]
+2026-09-22T20:27:03.4542372Z [command]/usr/bin/git sparse-checkout disable
+2026-09-22T20:27:03.4594159Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-22T20:27:03.4605535Z ##[group]Checking out the ref
+2026-09-22T20:27:03.4609247Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-09-22T20:27:03.4675980Z Switched to a new branch 'main'
+2026-09-22T20:27:03.4684147Z branch 'main' set up to track 'origin/main'.
+2026-09-22T20:27:03.4689253Z ##[endgroup]
+2026-09-22T20:27:03.4736481Z [command]/usr/bin/git log -1 --format=%H
+2026-09-22T20:27:03.4766486Z 05ee8466fa7b3c3ee0482e29c9cc1fff0504aa19
+2026-09-22T20:27:03.5082377Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-22T20:27:03.5085077Z ##[group]Run actions/setup-node@v4
+2026-09-22T20:27:03.5085673Z with:
+2026-09-22T20:27:03.5086147Z   node-version: 20
+2026-09-22T20:27:03.5086660Z   always-auth: false
+2026-09-22T20:27:03.5087190Z   check-latest: false
+2026-09-22T20:27:03.5090789Z   token: ***
+2026-09-22T20:27:03.5091282Z ##[endgroup]
+2026-09-22T20:27:03.6744106Z Attempting to download 20...
+2026-09-22T20:27:03.6854824Z (node:1996) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-22T20:27:03.6857688Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-22T20:27:04.3722326Z Acquiring 20.20.2 - x64 from https://github.com/actions/node-versions/releases/download/20.20.2-23521894959/node-20.20.2-linux-x64.tar.gz
+2026-09-22T20:27:05.1034243Z Extracting ...
+2026-09-22T20:27:05.1167645Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/81ebb470-d60d-41a8-aecc-2e8a0646541b -f /home/runner/work/_temp/b826c926-8fea-422c-bbb4-669ff5d48347
+2026-09-22T20:27:06.2715056Z Adding to the cache ...
+2026-09-22T20:27:09.9554338Z ##[group]Environment details
+2026-09-22T20:27:10.2353370Z node: v20.20.2
+2026-09-22T20:27:10.2354608Z npm: 10.8.2
+2026-09-22T20:27:10.2373017Z yarn: 1.22.22
+2026-09-22T20:27:10.2373930Z ##[endgroup]
+2026-09-22T20:27:10.2603884Z ##[group]Run npm install
+2026-09-22T20:27:10.2604254Z [36;1mnpm install[0m
+2026-09-22T20:27:10.2646800Z shell: /usr/bin/bash -e {0}
+2026-09-22T20:27:10.2647102Z ##[endgroup]
+2026-09-22T20:27:11.7399590Z 
+2026-09-22T20:27:11.7410579Z added 68 packages, and audited 69 packages in 1s
+2026-09-22T20:27:11.7411780Z 
+2026-09-22T20:27:11.7412466Z 15 packages are looking for funding
+2026-09-22T20:27:11.7413404Z   run `npm fund` for details
+2026-09-22T20:27:11.7512098Z 
+2026-09-22T20:27:11.7513793Z 3 moderate severity vulnerabilities
+2026-09-22T20:27:11.7520918Z 
+2026-09-22T20:27:11.7523607Z To address all issues, run:
+2026-09-22T20:27:11.7524469Z   npm audit fix
+2026-09-22T20:27:11.7524880Z 
+2026-09-22T20:27:11.7525252Z Run `npm audit` for details.
+2026-09-22T20:27:11.7647979Z ##[group]Run set +e
+2026-09-22T20:27:11.7648338Z [36;1mset +e[0m
+2026-09-22T20:27:11.7648558Z [36;1mnpm test[0m
+2026-09-22T20:27:11.7648766Z [36;1mcode=$?[0m
+2026-09-22T20:27:11.7648971Z [36;1mset -e[0m
+2026-09-22T20:27:11.7649327Z [36;1m# test.js exits 75 (EX_TEMPFAIL) for environment problems and 1 for real[0m
+2026-09-22T20:27:11.7649892Z [36;1m# code bugs. Only a code bug is worth waking the self-healing workflow.[0m
+2026-09-22T20:27:11.7650326Z [36;1mif [ "$code" -eq 0 ]; then[0m
+2026-09-22T20:27:11.7650590Z [36;1m  kind=none[0m
+2026-09-22T20:27:11.7650843Z [36;1melif [ "$code" -eq 75 ]; then[0m
+2026-09-22T20:27:11.7651113Z [36;1m  kind=infra[0m
+2026-09-22T20:27:11.7651319Z [36;1melse[0m
+2026-09-22T20:27:11.7651778Z [36;1m  kind=code[0m
+2026-09-22T20:27:11.7652078Z [36;1mfi[0m
+2026-09-22T20:27:11.7652328Z [36;1mecho "failure_kind=$kind" >> "$GITHUB_OUTPUT"[0m
+2026-09-22T20:27:11.7652735Z [36;1mecho "npm test exited $code -> failure_kind=$kind"[0m
+2026-09-22T20:27:11.7653147Z [36;1mexit "$code"[0m
+2026-09-22T20:27:11.7690624Z shell: /usr/bin/bash -e {0}
+2026-09-22T20:27:11.7690900Z ##[endgroup]
+2026-09-22T20:27:11.8904619Z 
+2026-09-22T20:27:11.8905410Z > self-healing-cicd-demo@1.0.0 test
+2026-09-22T20:27:11.8906219Z > node test.js
+2026-09-22T20:27:11.8906626Z 
+2026-09-22T20:27:11.9957635Z /home/runner/work/self-healing-cicd-demo/self-healing-cicd-demo/test.js:29
+2026-09-22T20:27:11.9958519Z   http
+2026-09-22T20:27:11.9959395Z   ^
+2026-09-22T20:27:11.9959732Z 
+2026-09-22T20:27:11.9960036Z ReferenceError: http is not defined
+2026-09-22T20:27:11.9961103Z     at Server.<anonymous> (/home/runner/work/self-healing-cicd-demo/self-healing-cicd-demo/test.js:29:3)
+2026-09-22T20:27:11.9962450Z     at Object.onceWrapper (node:events:638:28)
+2026-09-22T20:27:11.9963012Z     at Server.emit (node:events:536:35)
+2026-09-22T20:27:11.9963360Z     at emitListeningNT (node:net:1951:10)
+2026-09-22T20:27:11.9963895Z     at process.processTicksAndRejections (node:internal/process/task_queues:81:21)
+2026-09-22T20:27:11.9964267Z 
+2026-09-22T20:27:11.9964373Z Node.js v20.20.2
+2026-09-22T20:27:12.0049472Z npm test exited 1 -> failure_kind=code
+2026-09-22T20:27:12.0066162Z ##[error]Process completed with exit code 1.
+2026-09-22T20:27:12.0240224Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-22T20:27:12.0242524Z Post job cleanup.
+2026-09-22T20:27:12.1231830Z [command]/usr/bin/git version
+2026-09-22T20:27:12.1298229Z git version 2.55.0
+2026-09-22T20:27:12.1359413Z Temporarily overriding HOME='/home/runner/work/_temp/58cfa0bd-f575-4cfe-8bef-73280556d05e' before making global git config changes
+2026-09-22T20:27:12.1361128Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-22T20:27:12.1363145Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-healing-cicd-demo/self-healing-cicd-demo
+2026-09-22T20:27:12.1472901Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-22T20:27:12.1519143Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-22T20:27:12.2214873Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-22T20:27:12.2289166Z http.https://github.com/.extraheader
+2026-09-22T20:27:12.2333348Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-22T20:27:12.2460916Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-22T20:27:12.3213296Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-22T20:27:12.3343799Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-22T20:27:12.4315519Z Evaluate and set job outputs
+2026-09-22T20:27:12.4323516Z Set output 'failure_kind'
+2026-09-22T20:27:12.4325400Z Cleaning up orphan processes
+2026-09-22T20:27:12.4584217Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

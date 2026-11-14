@@ -1,0 +1,22 @@
+Assemble Model Reply
+  SSE -> content reassembled byte-for-byte                     PASS 
+  reasoning kept separate from content                         PASS 
+  finish_reason + timings + usage carried over (exec stats keep working) PASS 
+  CRLF line endings tolerated                                  PASS 
+  plain (non-stream) JSON passes through unchanged             PASS 
+  524 error item -> rethrown with its original text            PASS 
+  stream cut off (no finish, no [DONE]) -> refused, not a half patch PASS 
+  empty body -> refused                                        PASS 
+  server error event mid-stream -> refused                     PASS 
+
+Extract AI Response passes an upstream failure through verbatim
+  upstream error rethrown unchanged                            PASS 
+
+Explain Failure
+  retry failure -> comment targets the PR, names attempt 2 and the 524 PASS 
+  first-heal failure (push to main) -> comment targets the commit PASS 
+  object error unwrapped                                       PASS 
+  n8n's '[line N]' suffixes stripped (seen in the live comment) PASS 
+  missing error text still yields a useful comment             PASS 
+
+FAILURES: 0

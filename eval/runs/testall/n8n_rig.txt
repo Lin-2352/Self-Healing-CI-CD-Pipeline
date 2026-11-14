@@ -1,0 +1,18 @@
+PASS missing_app_init     rc=0 model_got_request=True system==shipped=True golden=True edits=1
+PASS   CI log in prompt (real error, no timestamps)=True | job id from jobs API=106924016599 | PAT sent to API=True | PAT sent to blob host=False
+PASS wrong_status_check   rc=0 model_got_request=True system==shipped=True golden=True edits=1
+PASS   CI log in prompt (real error, no timestamps)=True | job id from jobs API=106924016599 | PAT sent to API=True | PAT sent to blob host=False
+       retry request sent with thinking ON: True
+PASS retry: attempt 1 on ai-fix-missing-express-init-abc1234 -> branch kept=True trailer=['Heal-Attempt: 2'] prompt says attempt 2=True
+PASS retry: first heal on main -> new sha-suffixed branch ai-fix-missing-express-init-abc1234, trailer 1=True
+PASS multifile: trace-only bug -> fetched ['src/format.js', 'src/app.js', 'test/api.test.js'], prompt shows all=True, fixed src/format.js exactly=True
+PASS multifile: model names a file it was not shown -> rejected, commit comment says so=True
+PASS extract: SEARCH absent          rejected=True -> commit comment posted=True quotes reason=True
+PASS extract: SEARCH not unique      rejected=True -> commit comment posted=True quotes reason=True
+PASS extract: patch does not parse   rejected=True -> commit comment posted=True quotes reason=True
+PASS extract: old fixed_code schema  rejected=True -> commit comment posted=True quotes reason=True
+PASS failure: model 524 on retry -> PR #37 comment posted=True, quotes the timeout=True, names attempt 2=True
+PASS failure: streamed happy path -> request stream=True, reassembled=True, timings kept=True, golden=True, no comment=True
+PASS probe: job log 404 -> heal still runs with '(log unavailable)'? rc=0 heal=True marker=True
+PASS probe: hostile chars in payload -> valid request? True, heal ok? True, actor round-trips: True
+PASS probe: failure_kind=infra -> refused before model? rc=1 model_called=False msg=Refusing to run: failure_kind=\
