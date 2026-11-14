@@ -1,4 +1,4 @@
-# Kaggle batch-run environment — MEASURED (2026-09-07)
+# Kaggle batch-run environment, measured 2026-09-07
 
 From the env probe in kernel version 2 of `lacrimatct/qwen3-8-27b-full-quant-sweep-2xt4`.
 These are real numbers, replacing earlier estimates.
@@ -8,7 +8,7 @@ These are real numbers, replacing earlier estimates.
 | GPU (when `enable_gpu:true` only) | **Tesla P100-PCIE-16GB**, compute cap **6.0**, 16384 MiB |
 | System RAM | **31 GB total, ~30 GB available** (earlier estimate said ~29) |
 | CPU | **4 cores**, Intel Xeon @ 2.00 GHz |
-| CPU flags | `avx2 avx512bw avx512cd avx512dq avx512f avx512vl` — **AVX-512 IS present**; no AMX |
+| CPU flags | `avx2 avx512bw avx512cd avx512dq avx512f avx512vl`; AVX-512 is present, AMX is not |
 | `/kaggle/working` | 20 GB |
 | `/kaggle/tmp` and `/tmp` scratch | **1103 GB free** - disk is not a constraint |
 | Internet | reachable (HTTP 200 to huggingface.co) |
@@ -74,7 +74,7 @@ draft sessions do **not** (`ListKernelSessionOutput` returns 404 with 0 saved ve
 which is why the first run's results were unrecoverable.
 
 Caveat: batch runs start with an empty `/kaggle/working`, so the sweep script's resume
-logic does not carry across versions — each run is from scratch.
+logic does not carry across versions, so each run starts from scratch.
 
 ## HF repo/quant inventory (verified 2026-09-07)
 
@@ -82,14 +82,14 @@ logic does not carry across versions — each run is from scratch.
 |---|---|---|
 | `barozp/Qwen3.8-27B-Opus-Distill-GGUF` | 10 (~9k dl) | BF16, IQ1_M, IQ2_XXS, IQ3_XXS, Q3_K_M, Q4_K_M, Q5_K_M, Q6_K, Q8_0, + mmproj |
 | `unsloth/Qwen3.8-27B-GGUF` | 30 (~10.3M dl) | UD-* dynamic quants Q2..Q8, BF16 sharded, **plus `MTP/mtp-Qwen3.8-27B-Q4_0.gguf`** (separate MTP draft model for speculative decoding) |
-| `ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF` | 10 (~348k dl) | IQ2_XS, IQ2_S, IQ3_XXS, IQ3_S — **each in plain and `-mtp` form**, + imatrix + mmproj |
+| `ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF` | 10 (~348k dl) | IQ2_XS, IQ2_S, IQ3_XXS, IQ3_S, each in plain and `-mtp` form, + imatrix + mmproj |
 | `Jackrong/Qwopus3.6-35B-A3B-v1-GGUF` | 5 (~318k dl) | Q4_K_M, Q5_K_M, Q6_K, Q8_0, + mmproj |
 
 Two selection subtleties in the sweep's regex matching:
 
 - On the GSQ repo, `sorted()` picks the **`-mtp` variant** first (`-` sorts before `.`), so
-  `gsq_iq3_xxs` / `gsq_iq2_s` actually test the MTP-enabled files. That is arguably the more
-  interesting build (MTP is the largest free speedup, ~+56% on a 3090) — but if llama.cpp
+  `gsq_iq3_xxs` / `gsq_iq2_s` actually test the MTP-enabled files. MTP is the largest free speedup
+  (~+56% on a 3090), so those are the more useful builds, but if llama.cpp
   cannot load the extra MTP tensors those two configs will error. A follow-up sweep should
   A/B plain vs `-mtp` explicitly.
 - On the unsloth repo, `q6_k(_[a-z]+)?\.gguf$` correctly resolves to plain `UD-Q6_K.gguf`

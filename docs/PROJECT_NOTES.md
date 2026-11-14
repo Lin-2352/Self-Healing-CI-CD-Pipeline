@@ -1,4 +1,4 @@
-# Self-Healing CI/CD Pipeline — Project Understanding & Prep
+# Self-Healing CI/CD Pipeline: Project Understanding & Prep
 
 Source: YouTube "Build a Self-Healing CI/CD Pipeline with AI" (freeCodeCamp / The Techie, Faizan Ali)
 Video: https://www.youtube.com/watch?v=vj68el9hRvU
@@ -11,7 +11,7 @@ An autonomous pipeline that, when a GitHub Actions build fails, automatically:
 2. Uses the GitHub API to pull the failed job logs, the changed files, and the raw file content.
 3. Sends logs + code to OpenAI (GPT-4o-mini) for root-cause analysis and a full-file fix.
 4. Creates a new branch, commits the AI fix, and opens a Pull Request.
-5. Emails the team. Human reviews and merges — AI never writes to `main` directly.
+5. Emails the team. A human reviews and merges; the bot never writes to `main` directly.
 
 ## Architecture / flow
 
@@ -24,9 +24,9 @@ GitHub Action fails -> `notify-on-failure` job -> `curl` POST to n8n webhook
 ## Tech stack / accounts needed
 
 - Git + GitHub account
-- Node.js 20 (local) — sample app is Node + Express
+- Node.js 20 (local): the sample app is Node + Express
 - VS Code
-- n8n cloud account (14-day free trial) — the automation "brain"
+- n8n cloud account (14-day free trial), which runs the automation
 - OpenAI account with >= $5 credit + API key (or use n8n's free credits)
 - Gmail (for notification node, OAuth via "Sign in with Google")
 
@@ -34,17 +34,17 @@ GitHub Action fails -> `notify-on-failure` job -> `curl` POST to n8n webhook
 
 - Repo name in video: `self-healing-cicd-pipeline-using-n8n`
 - Personal Access Token (classic) with scopes: `repo`, `workflow`, `admin:org` (admin), `admin:repo_hook`
-- Repo Actions secrets (names MUST match main.yml exactly, case-sensitive):
-  - `GH_TOKEN` — the PAT
-  - `N8N_WEBHOOK_SECRET` — any strong string (e.g. `mysecret123!`), also stored in n8n
-  - `N8N_WEBHOOK_URL` — n8n webhook URL (test URL during dev, production URL at the end)
+- Repo Actions secrets (names must match main.yml exactly, case-sensitive):
+  - `GH_TOKEN`: the PAT
+  - `N8N_WEBHOOK_SECRET`: any strong string (e.g. `mysecret123!`), also stored in n8n
+  - `N8N_WEBHOOK_URL`: n8n webhook URL (test URL during dev, production URL at the end)
 
 ## Sample app files
 
-- `index.js` — trivial `console.log("hello from index.js")`
-- `test.js` — smoke test: starts Express on port 5000, HTTP GET to self, exit 0 if 200 else exit 1
+- `index.js`: trivial `console.log("hello from index.js")`
+- `test.js`: smoke test: starts Express on port 5000, HTTP GET to self, exit 0 if 200 else exit 1
 - `package.json` scripts: `"test": "node test.js"`, `"build": "node index.js"`
-- `.gitignore` — `node_modules`
+- `.gitignore`: `node_modules`
 - deps: `express`
 
 ## `.github/workflows/main.yml` outline
@@ -65,18 +65,18 @@ GitHub Action fails -> `notify-on-failure` job -> `curl` POST to n8n webhook
 
 ## n8n workflow nodes
 
-1. **Webhook** ("GitHub Failure Webhook") — POST, Header Auth credential, secret name `X-Webhook-Secret` = `N8N_WEBHOOK_SECRET` value; response mode "when last node finishes", no response body.
-2. **HTTP "fetch logs"** — GET `https://api.github.com/repos/{{repo}}/actions/runs/{{run_id}}/jobs`, Bearer auth (GitHub PAT credential).
-3. **HTTP "fetch changed files"** — GET `https://api.github.com/repos/{{repo}}/compare/{{commit}}~1...{{commit}}`, Bearer.
-4. **HTTP "fetch file content"** — GET `{{ $('fetch changed files').first().json.files[0].raw_url }}`, Bearer.
-5. **Code node** — captures webhook payload + logs JSON; finds failed job via `.find(status/conclusion === 'failure')`; extracts failed steps; filters changed files to code extensions (js, ts, py, ...); normalizes file content; wraps code in markdown fences; builds one big `prompt` string (repo, branch, commit, code) instructing AI to return valid JSON only.
-6. **OpenAI "message a model"** — model gpt-4o-mini; system message = "expert DevOps engineer / Node.js dev... return ONLY raw valid JSON, no markdown. Branch name must be unique/specific (e.g. `ai-fix-express-init`), not main/master. Fixed code = entire file content. Schema: branch_name, file_path, fixed_code, pr_title, pr_body"; user message = the dynamic prompt.
-7. **Code node "extract AI response"** — parse OpenAI output; strip markdown fences via regex; JSON.parse; verify `fixed_code` exists; return object incl. `base64_content = Buffer.from(fixed_code).toString('base64')`, plus repo/commit.
-8. **HTTP "create branch"** — POST `https://api.github.com/repos/{{repo}}/git/refs`, Bearer, JSON body `{ "ref": "refs/heads/{{branch_name}}", "sha": "{{commit}}" }`.
-9. **HTTP "get file sha"** — GET `https://api.github.com/repos/{{repo}}/contents/{{file_path}}`, Bearer.
-10. **HTTP "push fix file"** — PUT `https://api.github.com/repos/{{repo}}/contents/{{file_path}}`, Bearer, body: `message` = pr_title, `content` = base64_content, `sha` = file sha, `branch` = branch_name.
-11. **HTTP "open pull request"** — POST `https://api.github.com/repos/{{repo}}/pulls`, Bearer, body: `title` = pr_title, `body` = pr_body, `head` = branch_name, `base` = main.
-12. **Gmail "send a message"** — subject "CI/CD failure fixed and pushed by AI", body pulls repo/branch/PR title from prior nodes. Optionally disable n8n attribution.
+1. **Webhook** ("GitHub Failure Webhook"): POST, Header Auth credential, secret name `X-Webhook-Secret` = `N8N_WEBHOOK_SECRET` value; response mode "when last node finishes", no response body.
+2. **HTTP "fetch logs"**: GET `https://api.github.com/repos/{{repo}}/actions/runs/{{run_id}}/jobs`, Bearer auth (GitHub PAT credential).
+3. **HTTP "fetch changed files"**: GET `https://api.github.com/repos/{{repo}}/compare/{{commit}}~1...{{commit}}`, Bearer.
+4. **HTTP "fetch file content"**: GET `{{ $('fetch changed files').first().json.files[0].raw_url }}`, Bearer.
+5. **Code node**: captures webhook payload + logs JSON; finds failed job via `.find(status/conclusion === 'failure')`; extracts failed steps; filters changed files to code extensions (js, ts, py, ...); normalizes file content; wraps code in markdown fences; builds one big `prompt` string (repo, branch, commit, code) instructing AI to return valid JSON only.
+6. **OpenAI "message a model"**: model gpt-4o-mini; system message = "expert DevOps engineer / Node.js dev... return ONLY raw valid JSON, no markdown. Branch name must be unique/specific (e.g. `ai-fix-express-init`), not main/master. Fixed code = entire file content. Schema: branch_name, file_path, fixed_code, pr_title, pr_body"; user message = the dynamic prompt.
+7. **Code node "extract AI response"**: parse OpenAI output; strip markdown fences via regex; JSON.parse; verify `fixed_code` exists; return object incl. `base64_content = Buffer.from(fixed_code).toString('base64')`, plus repo/commit.
+8. **HTTP "create branch"**: POST `https://api.github.com/repos/{{repo}}/git/refs`, Bearer, JSON body `{ "ref": "refs/heads/{{branch_name}}", "sha": "{{commit}}" }`.
+9. **HTTP "get file sha"**: GET `https://api.github.com/repos/{{repo}}/contents/{{file_path}}`, Bearer.
+10. **HTTP "push fix file"**: PUT `https://api.github.com/repos/{{repo}}/contents/{{file_path}}`, Bearer, body: `message` = pr_title, `content` = base64_content, `sha` = file sha, `branch` = branch_name.
+11. **HTTP "open pull request"**: POST `https://api.github.com/repos/{{repo}}/pulls`, Bearer, body: `title` = pr_title, `body` = pr_body, `head` = branch_name, `base` = main.
+12. **Gmail "send a message"**: subject "CI/CD failure fixed and pushed by AI", body pulls repo/branch/PR title from prior nodes. Optionally disable n8n attribution.
 
 ## Going to production
 
@@ -89,7 +89,7 @@ GitHub Action fails -> `notify-on-failure` job -> `curl` POST to n8n webhook
 - Common transcript typos: `steps`, `node-version`.
 - `compare` API `~1...` needs URL-encoding care (`~` and `...`).
 - Workflow-run log archive download URL expires ~1 min; the video uses the `/jobs` endpoint (JSON) instead of the raw log archive.
-- `github.event.pull_request` not used — trigger is `push` to main.
+- `github.event.pull_request` not used; the trigger is `push` to main.
 - To intentionally break the build: delete `const app = express()` from test.js.
 
 ## Reference links
@@ -105,7 +105,7 @@ GitHub Action fails -> `notify-on-failure` job -> `curl` POST to n8n webhook
 
 ---
 
-# Part 2 — The model / "brain" decision (added 2026-09-07)
+# Part 2: The model / "brain" decision (added 2026-09-07)
 
 The tutorial wires the n8n **OpenAI** node to `api.openai.com`. We are replacing that with a
 self-hosted OpenAI-compatible endpoint served from a Kaggle notebook (free 2xT4, 32 GB VRAM),
@@ -125,7 +125,7 @@ remote GPU. n8n integration is unchanged in shape: same node, different **base U
 
 Comparing Q8 against IQ2 is a **quality-per-GB** question, so a throughput-only benchmark
 cannot answer "which is best". The sweep scores each config on a 5-case CI-failure suite
-that mirrors the real pipeline task — analyze a GitHub Actions failure log plus a broken
+that mirrors the real pipeline task: analyze a GitHub Actions failure log plus a broken
 `test.js`, return the corrected file as strict JSON:
 
 | case | injected bug | checked by |
@@ -153,8 +153,8 @@ Everything downstream of the model node (extract-AI-response, create branch, pus
 PR, Gmail) is unchanged from Part 1.
 
 Notes that matter for the pipeline:
-- **Strip `<think>...</think>` before `JSON.parse`** — all Qwen3.x are hybrid-reasoning.
+- **Strip `<think>...</think>` before `JSON.parse`**: all Qwen3.x are hybrid-reasoning.
 - Consider a **GBNF grammar** on llama-server to hard-enforce the JSON schema.
 - Keep context **64k–80k max**: llama.cpp CUDA issue #27623 collapses decode past ~80k.
 - Kaggle GPU quota is **30 h/week per account** and sessions cap out, so a tunnel is fine for
-  testing but is not a durable production endpoint — the hosted-API escape hatch stands.
+  testing but is not a durable production endpoint, so the hosted-API fallback stays.

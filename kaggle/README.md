@@ -255,12 +255,12 @@ Two endpoint settings matter for the backend:
 
 ## Results and related documentation
 
-- `docs/results/GOLIVE_RESULTS.md` — live endpoint rounds and repair outcomes.
-- `docs/results/SHIPPED_QUALITY_EVAL.md` — shipped prompt/log/thinking quality results.
-- `docs/results/MULTIFILE_EVAL.md` — cross-file repair results.
-- `docs/research/` — hardware, model identity, speed, and quantization measurements.
-- `docs/SETUP.md` — complete repository and n8n setup instructions.
-- `README.md` — project overview, end-to-end testing, and go-live workflow.
+- `docs/results/GOLIVE_RESULTS.md`: live endpoint rounds and repair outcomes.
+- `docs/results/SHIPPED_QUALITY_EVAL.md`: shipped prompt/log/thinking quality results.
+- `docs/results/MULTIFILE_EVAL.md`: cross-file repair results.
+- `docs/research/`: hardware, model identity, speed, and quantization measurements.
+- `docs/SETUP.md`: complete repository and n8n setup instructions.
+- `README.md`: project overview, end-to-end testing, and go-live workflow.
 
 ## Security and lifecycle notes
 

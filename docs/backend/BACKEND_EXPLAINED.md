@@ -44,7 +44,7 @@ Read the chapters in order the first time. Afterwards, jump straight to whicheve
 4. **[Chapter 4: A tour of the code, file by file](04-code-tour.md)**
    Every one of the 51 Python files in `app/` and `scripts/`, with each function or class explained, plus one paragraph for each test file. Use it as a map while reading the code.
 
-5. **[Chapter 5: Reference — settings, endpoints, and database](05-reference.md)**
+5. **[Chapter 5: Reference (settings, endpoints, and database)](05-reference.md)**
    Every setting with its default, what it changes, and whether to change it before going live. Every endpoint with who calls it and what it returns. Every database table and what one row means. Also what calibration and ECE mean.
 
 6. **[Chapter 6: Project status, running it, and common questions](06-status-and-running.md)**

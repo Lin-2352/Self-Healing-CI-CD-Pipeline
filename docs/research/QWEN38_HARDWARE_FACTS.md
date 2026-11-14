@@ -1,8 +1,8 @@
 # Qwen3.8-27B hardware and deployment facts (with corrections to the earlier analysis)
 
 Source: RepoChad, "Run Qwen3.8-27B on ANY GPU (8GB to 32GB): Here's How", 31 Aug 2026,
-https://youtu.be/0xUxO_9zqTU (12:25, 105k views). Numbers are that reviewer's measurements —
-credible and internally consistent, but one source, not independently replicated.
+https://youtu.be/0xUxO_9zqTU (12:25, 105k views). Numbers are that reviewer's measurements.
+They are internally consistent but come from one source, not independently replicated.
 
 ## Architecture (why the earlier VRAM estimate was wrong)
 
@@ -50,7 +50,7 @@ caches and extended context windows."
 - **llama.cpp CUDA issue #27623**: decode collapses past ~80k tokens (33 → 1.4 tok/s) while prompt
   ingestion stays fast. **Keep context 64k–80k** until fixed.
 - **KV precision**: Q8 keys + Q4 values = stable compromise; pure Q4 K+V maximises context.
-- **CPU offload**: offload **FFN tensors selectively**, not whole layers — FFN is compute-dense and
+- **CPU offload**: offload **FFN tensors selectively**, not whole layers. FFN is compute-dense and
   tolerates CPU better than attention projections, and it reduces PCIe saturation.
 - **RAM bandwidth decides viability**: dual-channel DDR4 craters generation speed; fast DDR5 stays usable.
 - **MTP (multi-token prediction) is native** to Qwen3.8 and is the single biggest free speedup.
@@ -59,12 +59,12 @@ caches and extended context windows."
 ## Corrections to the earlier analysis
 
 1. **"Q8 doesn't fit in ~30 GB, Q6_K is the ceiling."** Wrong twice: Q8 is 26 GB not 29, and KV is
-   tiny (~1 GB @64k/4-bit) because 48 of 64 layers use a fixed state. Q8 ≈ 26 + 1 + 0.25 + 1 ≈ 28.5 GB
-   — plausible on a 30 GB budget; Q6_K (~21 GB) is roomy.
+   tiny (~1 GB @64k/4-bit) because 48 of 64 layers use a fixed state. Q8 ≈ 26 + 1 + 0.25 + 1 ≈ 28.5 GB,
+   which fits a a 30 GB budget; Q6_K (~21 GB) is roomy.
 2. **"RAM offload isn't worth it."** Too absolute, and based on whole-layer offload on mainline
    llama.cpp. Selective FFN-tensor offload + ik_llama.cpp is ~2.6× better than the earlier model assumed.
-   (The conclusion may still hold for **Kaggle specifically** — 4 weak vCPUs + DDR4-class RAM is
-   exactly the "craters" case — but the earlier reasoning was wrong.)
+   The conclusion may still hold for Kaggle, whose 4 weak vCPUs and DDR4-class RAM are the
+   "craters" case, but the earlier reasoning was wrong.
 3. **Over-weighted the "Gated-DeltaNet is broken on Turing/sm75" risk.** That came from inferring
    from one GitHub thread. The real documented CUDA bug is #27623 (long-context decode collapse),
    not a Turing correctness failure. Vulkan is shown working on RDNA1 (RX 5700 XT).

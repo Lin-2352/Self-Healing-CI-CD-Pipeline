@@ -1,4 +1,4 @@
-"""Regenerate n8n/self_healing_pipeline.json — the source of truth for the workflow.
+"""Regenerate n8n/self_healing_pipeline.json, the source of truth for the workflow.
 
 The original generator was lost when a temporary working folder was cleared; the workflow JSON
 survived, so this is rebuilt FROM that JSON and is required to reproduce it byte-for-byte

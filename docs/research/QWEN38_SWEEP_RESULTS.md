@@ -1,4 +1,4 @@
-# Qwen3.8-27B quant sweep — MEASURED results (Kaggle 2×T4)
+# Qwen3.8-27B quant sweep results (Kaggle 2×T4)
 
 Kernel `lacrimatct/qwen3-8-27b-full-quant-sweep-2xt4` v5, batch run, **252 min**, status COMPLETE.
 All 9 configs completed. Raw data: `results.json` from `kaggle kernels output`.
@@ -8,7 +8,7 @@ All 9 configs completed. Raw data: `results.json` from `kaggle kernels output`.
 **2× Tesla T4, 15360 MiB each = 30720 MiB total**, compute cap 7.5 · 31 GB RAM · 4× Xeon @2.0 GHz ·
 AVX-512 present, no AMX · scratch `/kaggle/tmp` 1103 GB · llama.cpp `465e49b9` (2026-09-07).
 
-## Results — ranked by measured generation speed
+## Results: ranked by measured generation speed
 
 Speeds are **server-side `timings` from `llama-server`** on the real task prompt (the authoritative
 number). Quality is the 5-case CI-failure eval, 3 pts each: valid JSON / `node --check` / correct fix.
@@ -29,7 +29,7 @@ number). Quality is the 5-case CI-failure eval, 3 pts each: valid JSON / `node -
 
 **Four of the five cases scored 3/3 for every single config.** The only case anything ever missed
 was `wrong_status_check`, and the miss was always `fix_correct=False` with valid JSON and valid
-syntax. So "15/15 vs 14/15" is **one binary case** — a coin flip, not a measured quality gap.
+syntax. So "15/15 vs 14/15" is one binary case, too few to show a quality gap.
 
 | config | missing_app_init | typo_method | missing_require | syntax_missing_brace | wrong_status_check |
 |---|---|---|---|---|---|
@@ -59,8 +59,8 @@ Two conclusions follow:
   footprint and the same 15/15 score.
 - **Absolute speed is low: 5.9–8.8 tok/s.** Far below the 42 tok/s the RepoChad video measured on a
   single RTX 3090 at Q4_K_M. Cause: T4 bandwidth (~320 GB/s vs 936) plus tensor-split across PCIe
-  with no NVLink. Notably the spread across a 3× size range is only ~1.5×, so PCIe split overhead —
-  not weight bandwidth — dominates.
+  with no NVLink. The spread across a 3× size range is only ~1.5×, so PCIe split overhead dominates
+  over weight bandwidth.
 - **Prompt processing is flat at ~58–65 tok/s** regardless of quant, consistent with the same
   interconnect bound.
 
@@ -68,17 +68,17 @@ Two conclusions follow:
 
 `llama-bench` returned `failed to load model` for every config ≥16.8 GB while `llama-server` loaded
 the identical files and ran them fine. It only succeeded on the two ~10 GB GSQ quants and the
-CPU-offload config — i.e. exactly the cases that fit on **one** 14.9 GB card. `llama-bench` is not
+CPU-offload config, which are the cases that fit on **one** 14.9 GB card. `llama-bench` is not
 honouring the tensor-split the way the server does. All speeds above therefore come from the
 server-side `timings`, which is what the plan designated authoritative anyway.
 
 ## Recommendation
 
-**`unsloth/Qwen3.8-27B-GGUF` → `Qwen3.8-27B-UD-Q4_K_XL.gguf` (17.6 GB)** — fastest measured
+**`unsloth/Qwen3.8-27B-GGUF` → `Qwen3.8-27B-UD-Q4_K_XL.gguf` (17.6 GB)**: fastest measured
 (8.8 tok/s), perfect on the eval, comfortable headroom on 2×T4.
 
 **If you want the second T4 free** (for a draft model, a second replica, or long context):
-**`ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-IQ3_XXS` (10.4 GB)** — 15/15 and 7.3 tok/s, fits a single card.
+**`ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-IQ3_XXS` (10.4 GB)**: 15/15 and 7.3 tok/s, fits a single card.
 
 Do **not** use Q8_0, and do **not** use CPU/RAM offload.
 
@@ -91,7 +91,7 @@ llama-server -m Qwen3.8-27B-UD-Q4_K_XL.gguf -ngl 99 -ts 0.5,0.5 -fa 1 \
 
 ## Caveats
 
-- 5-case eval, single run, no repeats — quality differences of one case are noise.
+- 5-case eval, single run, no repeats; quality differences of one case are noise.
 - The GSQ entries are the **`-mtp`** files (MTP tensors present); they loaded fine, but no
   speculative decoding was enabled, so MTP's headline speedup is untested here.
 - ~8 tok/s means a fix with a reasoning trace takes minutes, not seconds. Acceptable for a 3 a.m.
@@ -99,11 +99,11 @@ llama-server -m Qwen3.8-27B-UD-Q4_K_XL.gguf -ngl 99 -ts 0.5,0.5 -fa 1 \
 
 ## Worth testing next
 
-1. **MTP / speculative decoding** — untested and it is the biggest known free speedup (+56% on a
+1. **MTP / speculative decoding**: untested and it is the biggest known free speedup (+56% on a
    3090). `unsloth` ships `MTP/mtp-Qwen3.8-27B-Q4_0.gguf` as a draft model for `--model-draft`.
-2. **Single-card vs split** — run `gsq_iq3_xxs` pinned to one T4 (`CUDA_VISIBLE_DEVICES=0`) to
+2. **Single-card vs split**: run `gsq_iq3_xxs` pinned to one T4 (`CUDA_VISIBLE_DEVICES=0`) to
    measure how much the PCIe tensor-split is actually costing.
-3. **A harder eval** — multi-file bugs, ambiguous logs, cases needing repo context. Required before
+3. **A harder eval**: multi-file bugs, ambiguous logs, cases needing repo context. Required before
    any quality claim can separate these quants.
-4. **ik_llama.cpp** — AVX-512 is present, so its hybrid-offload advantage may partly rescue the
+4. **ik_llama.cpp**: AVX-512 is present, so its hybrid-offload advantage may partly rescue the
    RAM-offload path, though from 1.1 tok/s it has a long way to climb.

@@ -17,7 +17,7 @@ caused: under the isolated-vm expression engine (default on n8n 1.123+), `$('Som
 structured-clones items across the isolate boundary and **silently yields undefined** for a
 *Code* node's output, while `$node['X'].json.field` returns primitives and works. That is why
 the shipped nodes use `$node[...]` for Code-node reads. This harness resolves both accessors
-happily, so **a passing harness run does not prove the accessor choice is safe in n8n** — only
+happily, so **a passing harness run does not prove the accessor choice is safe in n8n**; only
 a live run does.
 
 Usage:

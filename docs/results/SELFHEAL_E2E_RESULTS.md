@@ -22,14 +22,14 @@ Run date: 2026-09-07. Repo: `Lin-2352/self-healing-cicd-demo` (private).
 | host | Kaggle 2×T4, prebuilt `llama-server` from `linsxav/llama-server-builder` (2.4 s extract) |
 | flags | `--flash-attn on --cache-type-k q8_0 --cache-type-v q8_0 -b 2048 -ub 512 -t 4 -tb 4` |
 | CI | GitHub Actions, `main.yml`, webhook gated on `failure_kind == 'code'` |
-| orchestrator | `heal_harness.py` (now `tools/heal_harness.py`) — executes the **shipped** `Build AI Prompt` and `Extract AI Response` jsCode from `n8n/self_healing_pipeline.json` under `node`, not a Python paraphrase |
+| orchestrator | `heal_harness.py` (now `tools/heal_harness.py`) runs the shipped `Build AI Prompt` and `Extract AI Response` jsCode from `n8n/self_healing_pipeline.json` under `node`, not a Python paraphrase |
 
 ## Results
 
 Timings come from GitHub's own job timestamps and llama-server's own `timings` block, not
 wall-clock estimates. `push→hook` = `total − hook_to_pr`. The driver's polled "CI seconds" is
 discarded: it lagged GitHub's run duration by ~12 s and, more importantly, *overlapped* the
-heal rather than preceding it — see the correction note.
+heal rather than preceding it (see the correction note).
 
 | # | scenario | break | push→hook s | fetch s | model s | tokens | tok/s | writes s | **push→PR s** | PR | diff | `npm test` |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---|---|---|
@@ -52,7 +52,7 @@ PR #4  Fix syntax error in test.js                        ->  +});
 PR #5  Fix smoke test status code check                   ->  -=== 201         +=== 200
 ```
 
-No whole-file rewrites and no collateral reformatting — the `.gitattributes` `eol=lf` pin was
+No whole-file rewrites and no collateral reformatting. The `.gitattributes` `eol=lf` pin was
 the difference between a 1-line diff and a 40-line one on Windows.
 
 ## Where the 104 seconds actually go
@@ -67,18 +67,18 @@ The **model is the dominant phase at ~55%**, and GitHub's share is smaller than 
 ~28 s of the push→hook window is run queueing plus provisioning the second job's runner.
 
 Stated against the target that drove three benchmark sweeps: **hitting 30 tok/s would cut the
-model phase from ~57 s to ~23 s, taking total push→PR to ~68 s — a 33% cut.** The speed hunt
-was well-founded. It is simply not the difference between workable and unworkable, because
+model phase from ~57 s to ~23 s, taking total push→PR to ~68 s, a 33% cut.** The speed work
+was worth doing, but it is not the difference between workable and unworkable, because
 104 s already clears the bar for a 3 a.m. auto-heal.
 
 > **Correction.** The first draft of this file claimed Actions was the bottleneck at 93% and
 > the model only ~13%. That came from adding the driver's polled `ci_seconds` (~100 s) to
 > `hook_to_pr` (~65 s) as if they were sequential phases. They are not: `ci_seconds` runs until
-> the workflow reports *completed*, which includes the notify job — and the notify job is
+> the workflow reports *completed*, which includes the notify job, and the notify job is
 > itself blocked on the heal (next section). The two windows overlap almost entirely. The
 > split above is rebuilt from GitHub's per-job timestamps.
 
-## Finding: the webhook pins a GitHub runner for the whole heal — fixed
+## Finding: the webhook pins a GitHub runner for the whole heal (fixed)
 
 `notify-n8n-on-failure` took **67–73 s** per run, for a job whose only step is a single `curl`.
 
@@ -86,9 +86,9 @@ Cause: the webhook node was configured `responseMode: "lastNode"`, which holds t
 response open until *Open Pull Request* finishes. The GitHub runner sat blocked for the entire
 heal cycle.
 
-This was not a harness artifact — the harness reproduced the shipped workflow's behaviour
+The harness reproduced the shipped workflow's behaviour
 correctly. Two real costs: ~70 s of billable runner time burned per heal, and a latent failure
-mode where a slower heal (a larger file — see the scaling limit below) times the `curl` out and
+mode where a slower heal (a larger file; see the scaling limit below) times the `curl` out and
 the webhook *appears* to fail even though the PR was opened successfully.
 
 **Fixed** in `n8n/self_healing_pipeline.json` and its generator: `responseMode: "onReceived"`.
@@ -102,26 +102,26 @@ notify job rather than push->PR.
 
 ## Finding: scenario 5 passed here after failing every config offline
 
-Scenario 5 is the only semantic bug in the set — nothing in the stack trace names the line or
+Scenario 5 is the only semantic bug in the set: nothing in the stack trace names the line or
 the fix. The model has to read the smoke test, know that a bare `GET /` returns 200, and
 conclude the *assertion* is wrong rather than the route. All 9 configs in the offline sweep got
 it wrong on a synthetic snippet; with the real failed-step output and the complete real source
 file, it was right first try.
 
-**The sweep was measuring the prompt, not the model** — so its per-model quality rankings
-deserve less weight than this deployed result.
+The sweep's synthetic snippet hid the information this case needs, so its per-model quality
+rankings deserve less weight than this deployed result.
 
 ## Finding: 12.1 tok/s, not the 8.8 the sweep measured
 
-Same quant, same hardware, **+38%**. Two things changed together — the batch flags
-(`-b 2048 -ub 512`) and the prebuilt binary — so this run cannot attribute the gain between
+Same quant, same hardware, **+38%**. Two things changed together, the batch flags
+(`-b 2048 -ub 512`) and the prebuilt binary, so this run cannot attribute the gain between
 them. Either way, 8.8 was a floor rather than a ceiling.
 
-## Scaling limit worth knowing before trusting this more broadly
+## Scaling limit: file size
 
 Each fix generated 631–677 tokens: a short reasoning pass, then a JSON envelope containing the
 **entire corrected file**. `test.js` is ~40 lines, so most of the output is the file itself.
-That cost scales with **file size**, not repo size — a 400-line file is roughly 10× the tokens
+That cost scales with **file size**, not repo size: a 400-line file is roughly 10× the tokens
 and pushes the model phase past 8 minutes, at which point the `curl` timeout above becomes live
 and the economics change.
 

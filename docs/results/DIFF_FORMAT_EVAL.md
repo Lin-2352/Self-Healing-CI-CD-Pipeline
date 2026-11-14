@@ -128,7 +128,7 @@ so it is not predictable in advance.
 > fewer tokens. Don't ship if either correctness or apply-rate drops.
 
 - **`search_replace` → SHIP.** 15/15 = baseline's 15/15, apply 100%, 3.8× fewer tokens.
-- **`unified_diff` → DO NOT SHIP.** Correctness drops (12/15 parse).
+- **`unified_diff` → do not ship.** Correctness drops (12/15 parse).
 
 **On `unified_diff` and the letter of that sentence:** read in isolation, the ship sentence names
 only `fix_correct` and `applied_ok`, and `unified_diff` is 15/15 on both. But `syntax_ok`
