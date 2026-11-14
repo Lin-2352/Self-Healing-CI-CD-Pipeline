@@ -133,21 +133,54 @@ def vram_used():
     return sum(vram_per_gpu()) or -1
 
 
+# Qwen3.8's chat template thinks unless the request says otherwise (server log: "thinking = 1").
+# The n8n workflow always sends enable_thinking, but ci-heal-backend only sends it to turn thinking
+# ON, so the server default has to be off. A request with enable_thinking:true still thinks.
+_, _help, _ = sh(ENV_PREFIX + SERVER + " --help 2>&1")
+THINK_OFF_FLAG = "--chat-template-kwargs '{\"enable_thinking\":false}' " if "--chat-template-kwargs" in _help else ""
+if not THINK_OFF_FLAG:
+    print("WARNING: this llama-server has no --chat-template-kwargs; thinking stays on by default. "
+          "Set CLASSIFIER_/FIXER_LLM_THINKING_FLAG=explicit in ci-heal-backend.", flush=True)
+
+
 def launch(ctx, port=8000, timeout=900):
     """Start one server candidate with the production tensor/MTP configuration."""
     sh("pkill -f llama-server; sleep 4")
     # Tensor split balances weights across both T4s; MTP reduces decode latency.
     # A single parallel slot preserves speculative-decoding quality for heal requests.
-    cmd = (ENV_PREFIX + "nohup " + SERVER +
-           " -m '%s' --n-gpu-layers 999 --ctx-size %d --flash-attn on "
-           "-sm tensor --cache-type-k f16 --cache-type-v f16 "
-           "--spec-type draft-mtp --spec-draft-n-max 2 --parallel 1 "
-           "-b 2048 -ub 512 -t 4 -tb 4 "
-           "--reasoning-budget 1024 "
-           "--host 0.0.0.0 --port %d -np 1 --jinja --api-key %s > %s/server.log 2>&1 &"
-           % (MODEL, ctx, port, API_KEY, OUT))
+    args = (" -m '%s' --n-gpu-layers 999 --ctx-size %d --flash-attn on "
+            "-sm tensor --cache-type-k f16 --cache-type-v f16 "
+            "--spec-type draft-mtp --spec-draft-n-max 2 --parallel 1 "
+            "-b 2048 -ub 512 -t 4 -tb 4 "
+            "--reasoning-budget 1024 "
+            "--host 0.0.0.0 --port %d -np 1 --jinja --api-key %s "
+            % (MODEL, ctx, port, API_KEY))
+    cmd = ENV_PREFIX + "nohup " + SERVER + args + THINK_OFF_FLAG + "> %s/server.log 2>&1 &" % OUT
     os.system(cmd)
     return wait_health(port, timeout=timeout)
+
+
+def thinking_check(port=8000):
+    """Ask once without the thinking field and once with enable_thinking:true. Judged by the reply,
+    not by log lines: reasoning_content or a <think> block counts as thinking."""
+    def thought(extra):
+        body = dict({"model": "local", "max_tokens": 600, "temperature": 0, "stream": False,
+                     "messages": [{"role": "user", "content": "What is 17 * 23? Answer with the number."}]}, **extra)
+        req = urllib.request.Request("http://localhost:%d/v1/chat/completions" % port, json.dumps(body).encode(),
+                                     {"Content-Type": "application/json", "Authorization": "Bearer " + API_KEY})
+        try:
+            msg = json.loads(urllib.request.urlopen(req, timeout=300).read())["choices"][0]["message"]
+        except Exception as ex:
+            return None, str(ex)[:120]
+        content = msg.get("content") or ""
+        return bool(msg.get("reasoning_content") or "<think>" in content), content.strip()[-40:]
+    default, d_out = thought({})
+    asked, a_out = thought({"chat_template_kwargs": {"enable_thinking": True}})
+    print("  thinking by default : %s  (reply %r)" % (default, d_out), flush=True)
+    print("  thinking when asked : %s  (reply %r)" % (asked, a_out), flush=True)
+    if default is not False or asked is not True:
+        print("  WARNING: thinking switch is not as expected (default should be off, on when asked).", flush=True)
+    return {"thinking_by_default": default, "thinking_when_asked": asked}
 
 
 def bench(port=8000, n=3, max_tokens=256):
@@ -213,6 +246,7 @@ for ctx in LADDER:
     if not (b["tensor_split_engaged"] and b["mtp_engaged"]):
         print("  WARNING: a lever did not engage - this endpoint will be slower than measured. "
               "Serving anyway, but the 28 tok/s figure does not apply.", flush=True)
+    chosen["thinking"] = thinking_check()
     break
 assert chosen, "no context size worked"
 
@@ -237,7 +271,7 @@ json.dump({"url": url, "api_key": API_KEY, "repo": USED_REPO,
            "mtp_engaged": chosen["bench"]["mtp_engaged"],
            "accept_rate": chosen["bench"]["accept_rate"],
            "vram_total_mib": vram, "gen_tps_avg": chosen["bench"]["avg"],
-           "gen_tps_best": chosen["bench"]["best"]},
+           "gen_tps_best": chosen["bench"]["best"], **chosen["thinking"]},
           open(OUT + "/endpoint.json", "w"), indent=1)
 
 # Keep the hosted session bounded; the Kaggle CLI cannot cancel a running kernel reliably.

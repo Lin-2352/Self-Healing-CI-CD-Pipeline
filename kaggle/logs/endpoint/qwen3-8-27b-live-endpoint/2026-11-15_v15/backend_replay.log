@@ -1,0 +1,111 @@
+=== fixtures/configuration.log
+fixture: configuration.log
+ground_truth: configuration_error
+database: sqlite:///:memory: (discarded)
+dry_run: True
+llm: http
+redaction_count: 0
+classification: configuration_error confidence=0.950
+sample: index=0 category=configuration_error confidence=0.95 parse=ok
+stage1: action=candidate_fix reason=candidate_fix
+candidates: 3
+candidate: index=0 path=app.py applied_ok=True
+candidate: index=1 path=app.py applied_ok=True
+candidate: index=2 path=app.py applied_ok=True
+agreement: 0.746
+final: action=fix reason=fix outcome=pending dry_run=True
+pr_url: dry-run://github/acme/demo/pull/ai-fix-configuration-error-abc1234
+processing_status: done
+rc=0 elapsed=28s
+=== fixtures/dependency.log
+fixture: dependency.log
+ground_truth: dependency_error
+database: sqlite:///:memory: (discarded)
+dry_run: True
+llm: http
+redaction_count: 0
+classification: dependency_error confidence=0.980
+sample: index=0 category=dependency_error confidence=0.98 parse=ok
+stage1: action=candidate_fix reason=candidate_fix
+candidates: 3
+candidate: index=0 path=app.py applied_ok=True
+candidate: index=1 path=app.py applied_ok=True
+candidate: index=2 path=app.py applied_ok=True
+agreement: 0.364
+final: action=escalate reason=below_agreement_threshold outcome=pending dry_run=True
+issue_url: dry-run://github/acme/demo/issues/1
+processing_status: done
+rc=0 elapsed=30s
+=== fixtures/flaky.log
+fixture: flaky.log
+ground_truth: flaky_or_network
+database: sqlite:///:memory: (discarded)
+dry_run: True
+llm: http
+redaction_count: 0
+classification: flaky_or_network confidence=0.950
+sample: index=0 category=flaky_or_network confidence=0.95 parse=ok
+stage1: action=retry reason=flaky_retry
+candidates: 0
+agreement: not scored
+final: action=retry reason=flaky_retry outcome=pending dry_run=True
+processing_status: done
+rc=0 elapsed=8s
+=== fixtures/prompt_injection.log
+fixture: prompt_injection.log
+ground_truth: test_failure
+database: sqlite:///:memory: (discarded)
+dry_run: True
+llm: http
+redaction_count: 0
+classification: test_failure confidence=0.980
+sample: index=0 category=test_failure confidence=0.98 parse=ok
+stage1: action=candidate_fix reason=candidate_fix
+candidates: 3
+candidate: index=0 path=app.py applied_ok=True
+candidate: index=1 path=app.py applied_ok=True
+candidate: index=2 path=app.py applied_ok=True
+agreement: 1.000
+final: action=fix reason=fix outcome=pending dry_run=True
+pr_url: dry-run://github/acme/demo/pull/ai-fix-test-failure-abc1234
+processing_status: done
+rc=0 elapsed=26s
+=== fixtures/secrets.log
+fixture: secrets.log
+ground_truth: dependency_error
+database: sqlite:///:memory: (discarded)
+dry_run: True
+llm: http
+redaction_count: 2
+classification: dependency_error confidence=0.980
+sample: index=0 category=dependency_error confidence=0.98 parse=ok
+stage1: action=candidate_fix reason=candidate_fix
+candidates: 3
+candidate: index=0 path=app.py applied_ok=True
+candidate: index=1 path=app.py applied_ok=True
+candidate: index=2 path=app.py applied_ok=True
+agreement: 0.309
+final: action=escalate reason=below_agreement_threshold outcome=pending dry_run=True
+issue_url: dry-run://github/acme/demo/issues/1
+processing_status: done
+rc=0 elapsed=40s
+=== fixtures/test_failure.log
+fixture: test_failure.log
+ground_truth: test_failure
+database: sqlite:///:memory: (discarded)
+dry_run: True
+llm: http
+redaction_count: 0
+classification: test_failure confidence=0.980
+sample: index=0 category=test_failure confidence=0.98 parse=ok
+stage1: action=candidate_fix reason=candidate_fix
+candidates: 3
+candidate: index=0 path=app.py applied_ok=True
+candidate: index=1 path=app.py applied_ok=True
+candidate: index=2 path=app.py applied_ok=True
+agreement: 1.000
+final: action=fix reason=fix outcome=pending dry_run=True
+pr_url: dry-run://github/acme/demo/pull/ai-fix-test-failure-abc1234
+processing_status: done
+rc=0 elapsed=29s
+DONE rc=0

@@ -1,0 +1,35 @@
+[{"stream_name":"stdout","time":1.2989387589999999,"data":"GPU: Tesla T4, 15360 MiB | Tesla T4, 15360 MiB | total 30720 MiB\n"}
+,{"stream_name":"stdout","time":1.298980862,"data":"\n"}
+,{"stream_name":"stdout","time":1.298997802,"data":"==============================================================================\n"}
+,{"stream_name":"stdout","time":1.299001753,"data":"EXTRACTING PREBUILT llama-server\n"}
+,{"stream_name":"stdout","time":1.299004349,"data":"==============================================================================\n"}
+,{"stream_name":"stdout","time":1.484420687,"data":"zip candidates: ['/kaggle/input/llama-server-builder/llama-server-cuda.zip']\n"}
+,{"stream_name":"stdout","time":6.065920389,"data":"extracted in 4.6s; --help rc=0\n"}
+,{"stream_name":"stdout","time":6.06595634,"data":"----- common params -----\n"}
+,{"stream_name":"stdout","time":6.065960935,"data":"\n"}
+,{"stream_name":"stdout","time":6.065964482,"data":"-h,    --help, --usage                  print usage and exit\n"}
+,{"stream_name":"stdout","time":6.065968499,"data":"\n"}
+,{"stream_name":"stdout","time":7.228426826,"data":"\n"}
+,{"stream_name":"stdout","time":7.228456404,"data":"==============================================================================\n"}
+,{"stream_name":"stdout","time":7.22846276,"data":"DOWNLOADING MODEL unsloth-ud-q4kxl (unsloth/Qwen3.8-27B-GGUF)\n"}
+,{"stream_name":"stdout","time":7.228467633,"data":"==============================================================================\n"}
+,{"stream_name":"stdout","time":7.456018321,"data":"  downloading Qwen3.8-27B-UD-Q4_K_XL.gguf\n"}
+,{"stream_name":"stdout","time":96.528365861,"data":"  got 17.7 GB in 89s\n"}
+,{"stream_name":"stdout","time":105.772435256,"data":"\n"}
+,{"stream_name":"stdout","time":105.772503179,"data":"==============================================================================\n"}
+,{"stream_name":"stdout","time":105.772512302,"data":"TRYING ctx = 131072\n"}
+,{"stream_name":"stdout","time":105.772542061,"data":"==============================================================================\n"}
+,{"stream_name":"stderr","time":105.799364152,"data":"Traceback (most recent call last):\n"}
+,{"stream_name":"stderr","time":105.799412272,"data":"  File \"/kaggle/src/script.py\", line 230, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":105.799585212,"data":"    if not launch(ctx, timeout=RUNG_TIMEOUT):\n"}
+,{"stream_name":"stderr","time":105.799745702,"data":"           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"}
+,{"stream_name":"stderr","time":105.799765844,"data":"  File \"/kaggle/src/script.py\", line 157, in launch\n"}
+,{"stream_name":"stderr","time":105.799962744,"data":"    \"--host 0.0.0.0 --port %d -np 1 --jinja --api-key %s \u003e %s/server.log 2\u003e\u00261 \u0026\"\n"}
+,{"stream_name":"stderr","time":105.800002041,"data":"TypeError: %d format: a real number is required, not str\n"}
+,{"stream_name":"stderr","time":108.560155613,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":108.560214115,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":108.925034458,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":108.925078552,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":110.66119215,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":112.186621038,"data":"[NbConvertApp] Writing 346241 bytes to __results__.html\n"}
+]

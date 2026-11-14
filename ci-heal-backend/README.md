@@ -6,6 +6,8 @@ Develop and deploy on **Python 3.12** (`.python-version`). The package installs 
 
 The beginner walkthrough is with the project docs: [docs/backend/BACKEND_EXPLAINED.md](../docs/backend/BACKEND_EXPLAINED.md).
 
+To run both model roles on the self-hosted Qwen3.8 endpoint, see [Serving ci-heal-backend](../kaggle/README.md#serving-ci-heal-backend).
+
 ## Architecture
 
 ```mermaid

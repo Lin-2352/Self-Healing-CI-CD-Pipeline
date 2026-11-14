@@ -6,3 +6,7 @@
 {"event": "fetch_logs", "dir": "kaggle\\logs\\endpoint\\qwen3-8-27b-live-endpoint\\2026-09-28_v11_round5", "files": ["boot.log", "endpoint.json", "kernel.log", "server.log", "tunnel.log"], "at": "2026-10-30T00:20:16+05:30"}
 {"event": "push", "version": 12, "code": "kaggle\\endpoint\\push\\qwen3-8-27b-live-endpoint.py", "at": "2026-10-30T02:55:28+05:30"}
 {"event": "stopped", "version": 12, "how": "web UI: View Active Events -> ... -> Stop Session", "note": "user test session; boot 23.8 tok/s, accept 0.64, ctx 131072; status CANCEL_ACKNOWLEDGED", "at": "2026-10-30T03:34:28+05:30"}
+{"event": "push", "version": 14, "code": "kaggle\\endpoint\\push\\qwen3-8-27b-live-endpoint.py", "at": "2026-11-15T01:15:45+05:30"}
+{"event": "fetch_logs", "dir": "kaggle\\logs\\endpoint\\qwen3-8-27b-live-endpoint\\2026-11-15_v14", "files": ["boot.log", "kernel.log", "stream.log"], "at": "2026-11-15T01:18:26+05:30"}
+{"event": "push", "version": 15, "code": "kaggle\\endpoint\\push\\qwen3-8-27b-live-endpoint.py", "at": "2026-11-15T01:19:06+05:30"}
+{"event": "stopped", "version": 15, "how": "website: View Active Events -> ... -> Stop Session", "note": "ci-heal-backend live test: thinking off by default, on when asked; 6/6 fixtures classified", "at": "2026-11-15T02:25:25+05:30"}

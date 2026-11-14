@@ -15,7 +15,7 @@ from kaggle_cli import KERNELS, run_dir   # noqa: E402
 KERNEL = KERNELS["endpoint"]["slug"]
 HOME = os.path.join(os.environ["LOCALAPPDATA"], "selfheal-n8n")
 KEEP = ("GPU:", "got ", "TRYING ctx", "failed at ctx", "booted.", "SELECTED", "tensor split engaged",
-        "MTP engaged", "WARNING", "URL      :", "SPEED", "Context", "Traceback", "Error", "ABORT", "DOWNLOADING MODEL")
+        "MTP engaged", "WARNING", "URL      :", "SPEED", "Context", "Traceback", "Error", "ABORT", "DOWNLOADING MODEL", "thinking by default", "thinking when asked")
 # Keep a complete stream for diagnostics, but print only lines that determine deployment health.
 OUT = run_dir("endpoint")
 boot = open(os.path.join(OUT, "boot.log"), "a", encoding="utf-8")

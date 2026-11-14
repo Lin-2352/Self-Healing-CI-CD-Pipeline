@@ -20,4 +20,6 @@ htmlcov/
 
 # Local SQLite databases
 *.db
+*.db-shm
+*.db-wal
 *.sqlite3

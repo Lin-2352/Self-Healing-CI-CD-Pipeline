@@ -84,7 +84,7 @@ of downloading a model that cannot run.
 
 ## Public notebook snapshot
 
-The public endpoint notebook is [`lacrimatct/qwen3-8-27b-live-endpoint`](https://www.kaggle.com/code/lacrimact/qwen3-8-27b-live-endpoint).
+The public endpoint notebook is [`lacrimatct/qwen3-8-27b-live-endpoint`](https://www.kaggle.com/code/lacrimatct/qwen3-8-27b-live-endpoint).
 The checked-in snapshot is separate from the maintained deployment source:
 
 - `notebooks/qwen3-8-27b-live-endpoint.py` is the exact script downloaded from Kaggle.
@@ -227,6 +227,31 @@ environment variables are set. `kaggle_cli.py` configures them automatically.
 The CI workflow classifies infrastructure failures separately from code failures. Confirm that the
 failure kind is `code`, the n8n workflow is imported from the current generated JSON, and the endpoint
 URL/API credential are current.
+
+## Serving ci-heal-backend
+
+`ci-heal-backend` calls this endpoint for both of its model roles, the classifier and the fixer. Once
+`watch_deploy.py` has saved the tunnel URL:
+
+```powershell
+python kaggle/tools/backend_env.py --check
+```
+
+This writes `CLASSIFIER_LLM_*` and `FIXER_LLM_*` (provider `http`, the tunnel URL, the endpoint key, model
+`local`) into `ci-heal-backend/.env`, leaves every other line alone, and with `--check` calls
+`GET /v1/models` through the tunnel. The key is never printed, and `.env` is ignored by git. The URL changes
+on every boot, so run it again after each deploy.
+
+Two endpoint settings matter for the backend:
+
+- Thinking is off unless a request asks for it. Qwen3.8's chat template thinks by default, and the backend
+  only sends `enable_thinking` when it wants thinking (on a classifier re-ask), so the server starts with
+  `--chat-template-kwargs '{"enable_thinking":false}'`. The boot checks this by asking twice and prints
+  `thinking by default` and `thinking when asked`; both values also go into `endpoint.json`. With thinking
+  on by default, the classifier's 512-token budget can run out before the JSON answer.
+- The server runs one request at a time (`--parallel 1`), and the backend sends its calls one after
+  another. A fix without thinking takes about 10 seconds, so the default `FIX_CANDIDATES=3` fits well
+  inside `FIXER_LLM_DEADLINE=360`.
 
 ## Results and related documentation
 
