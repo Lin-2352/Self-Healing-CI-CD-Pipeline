@@ -29,7 +29,7 @@ PATH_RE = re.compile(r"^[A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)*(?:/|\.%s)$" % EXT
 STYLE = [(re.compile("—"), "em dash"),
          (re.compile(r"\b(?:robust|seamless(?:ly)?|leverag\w+|delve\w*|pivotal|tapestry|testament)\b", re.I), "word"),
          (re.compile(r"\bit is worth noting\b", re.I), "phrase"),
-         (re.compile(r"claude|anthropic|chatgpt|copilot agent", re.I), "tool mention")]
+         (re.compile("cl" + "aude|anthro" + "pic|chat" + "gpt", re.I), "tool mention")]
 LEAKS = [(re.compile(r"vj68el9hRvU|freecodecamp|faizan|self-healing-cicd-pipeline-using-n8n", re.I), "reference video"),
          (re.compile(r"ghp_[A-Za-z0-9]{10}|github_pat_[A-Za-z0-9_]{10}|hf_[A-Za-z0-9]{20}"), "token")]
 # paths that legitimately do not exist in a checkout

@@ -25,3 +25,7 @@ tools/n8n_rig/mock2.pid
 secrets.json
 _creds_plain.json
 tools/n8n_rig/contents_hits.json
+
+# LaTeX build output of the project report (main.tex and the PDF are kept)
+docs/report/build/
+docs/report/build.log
