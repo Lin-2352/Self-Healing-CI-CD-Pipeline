@@ -15,7 +15,7 @@ def main():
     try:
         url = io.open(os.path.join(HOME, "qwen_url.txt"), encoding="utf-8").read().strip()
     except OSError:
-        sys.exit("No model URL saved yet. Run launcher\start\1_start_model_on_kaggle.bat first.")
+        sys.exit("No model URL saved yet. Run launcher\\start\\1_start_model_on_kaggle.bat first.")
     src = io.open(os.path.join(ROOT, "kaggle", "endpoint", "deploy_src.py"), encoding="utf-8").read()
     key = re.search(r'^API_KEY = "([^"]+)"', src, re.M).group(1)
 
@@ -42,7 +42,7 @@ def main():
         cur = next((v.get("value") for v in rows if v.get("key") == "QWEN_BASE_URL"), None)
         print("  cloud n8n QWEN_BASE_URL      : %s" % ("up to date" if cur == url else "OUT OF DATE (%s)" % (cur or "not set")))
     else:
-        print("  cloud n8n QWEN_BASE_URL      : not checked (run launcher\start\setup_cloud_api_key.bat once to automate it)")
+        print("  cloud n8n QWEN_BASE_URL      : not checked (run launcher\\start\\setup_cloud_api_key.bat once to automate it)")
 
     subprocess.run("clip", input=url.encode("utf-8"), shell=True)
     print("\nThe base URL is on your clipboard.")
