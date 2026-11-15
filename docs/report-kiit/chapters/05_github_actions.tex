@@ -28,6 +28,8 @@ The \texttt{pull\_\allowbreak{}request} trigger was added so that the fix pull r
 
 \section{Jobs}
 
+\input{figures/fig_gha}
+
 There are two jobs, \texttt{build-\allowbreak{}and-\allowbreak{}test} and \texttt{notify-\allowbreak{}n8n-\allowbreak{}on-\allowbreak{}failure}. The second one names the first in \texttt{needs}, so it waits for it and can read its outputs. Both run on \texttt{ubuntu-\allowbreak{}latest}.
 
 \section{The build-and-test job}

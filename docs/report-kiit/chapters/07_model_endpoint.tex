@@ -4,6 +4,8 @@
 
 \section{Role of the service}
 
+\input{figures/fig_kaggle}
+
 The healer needs a language model that n8n and the backend can call over HTTPS. We could not pay for a hosted API, so the model runs on a free Kaggle notebook. A Python script starts a \texttt{llama-\allowbreak{}server} process from the llama.cpp project, loads Qwen3.8-27B into it, and puts a Cloudflare tunnel in front of port 8000. The result is an OpenAI-style chat API (\texttt{/\allowbreak{}v1/\allowbreak{}chat/\allowbreak{}completions}) at a temporary web address.
 
 Everything that runs on Kaggle is one file, \texttt{kaggle/\allowbreak{}endpoint/\allowbreak{}deploy\_\allowbreak{}src.\allowbreak{}py}. A small build script pastes the chosen model entry from \texttt{kaggle/\allowbreak{}endpoint/\allowbreak{}models.\allowbreak{}json} into it and writes the file that is uploaded (\texttt{kaggle/\allowbreak{}tools/\allowbreak{}build\_\allowbreak{}endpoint.\allowbreak{}py}). Boot logs from each session are kept under \texttt{kaggle/\allowbreak{}logs/\allowbreak{}endpoint/\allowbreak{}qwen3-\allowbreak{}8-\allowbreak{}27b-\allowbreak{}live-\allowbreak{}endpoint/\allowbreak{}\textless{}run\textgreater{}/\allowbreak{}}. In this chapter "boot log v16" means the \texttt{boot.\allowbreak{}log} in the run folder whose name ends in \texttt{v16}.
