@@ -1,5 +1,7 @@
 """Bring the healer's front door up: n8n + a Cloudflare quick tunnel + the repo's webhook secret.
 
+`up.py --local` starts n8n only (no tunnel, no secret change), for showing the workspace.
+
 Run AFTER watch_deploy.py (the Qwen URL) and n8n_import.py (credentials + workflow, activated).
 
 Readiness is judged BY EFFECT, not by log strings or /healthz:
@@ -19,7 +21,7 @@ N8N = next((p for p in [os.path.join(HOME, "app", "node_modules", "n8n", "bin", 
                         os.path.join(os.environ["TEMP"], "n8n_verify", "node_modules", "n8n", "bin", "n8n")]
             if os.path.exists(p)), None)
 CLOUDFLARED = os.path.join(HOME, "bin", "cloudflared.exe")
-REPO = "Lin-2352/self-healing-cicd-demo"
+REPO = "hr-agarwal/self_healing_CI-CD_Pipeline"
 PORT = 5678
 HOOK_PATH = "/webhook/github-failure"
 DETACH = 0x00000008 | 0x00000200          # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
@@ -89,7 +91,12 @@ def main():
         if not wait_ready("http://127.0.0.1:%d" % PORT, "local n8n", 240):
             sys.exit(1)
 
-    url_file = os.path.join(HOME, "tunnel_url.txt")
+    if "--local" in sys.argv[1:]:
+        # n8n only, for showing the workspace: no public tunnel, no change to the repo secret.
+        print("n8n is up at http://localhost:%d (local only; stop it with down.py)" % PORT)
+        return
+
+    url_file =os.path.join(HOME, "tunnel_url.txt")
     if os.path.exists(os.path.join(HOME, "tunnel.pid")) and os.path.exists(url_file):
         url = io.open(url_file).read().strip()
         if probe(url) in (401, 403):

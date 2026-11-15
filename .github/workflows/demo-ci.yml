@@ -1,0 +1,147 @@
+name: Demo CI # this is just the label for our workflow
+
+# the trigger: this tells GitHub when to start the engine
+on:
+  # this tells us torun this on every code push
+  push:
+    # which branch to watch
+    branches:
+      - main # the pipeline is locked onto our production branch
+    paths: ["demo-app/**"] # only runs when the demo app changes, not for the rest of the repo
+  # Heal PRs (ai-fix-* -> main) get their own CI run, so a wrong-but-parsing fix shows red.
+  pull_request:
+    branches:
+      - main
+    paths: ["demo-app/**"]
+
+# this is where the actual tasks begin
+jobs:
+  # our first job, the primary validation step
+  build-and-test:
+    runs-on: ubuntu-latest # GitHub gives us a fresh Linux server
+    defaults:
+      run:
+        working-directory: demo-app # the demo app lives in this folder of the repo
+    outputs:
+      failure_kind: ${{ steps.tests.outputs.failure_kind }}
+    steps:
+      - name: Checkout code # just a label for the first step
+        uses: actions/checkout@v4 # a pre-built tool that pulls our code into the runner (v4 means version 4)
+
+      - name: Setup Node.js # prepare our environment
+        uses: actions/setup-node@v4 # this installs Node.js for us
+        with: # pass a specific setting to the step
+          node-version: 20 # the latest stable version
+
+      - name: Install dependencies # time to get our libraries
+        run: npm install # downloads everything we need
+
+      # the moment of truth: if our code is broken, the pipeline stops right here
+      - name: Run tests
+        id: tests
+        run: |
+          set +e
+          npm test
+          code=$?
+          set -e
+          # test.js exits 75 (EX_TEMPFAIL) for environment problems and 1 for real
+          # code bugs. Only a code bug is worth waking the self-healing workflow.
+          if [ "$code" -eq 0 ]; then
+            kind=none
+          elif [ "$code" -eq 75 ]; then
+            kind=infra
+          else
+            kind=code
+          fi
+          echo "failure_kind=$kind" >> "$GITHUB_OUTPUT"
+          echo "npm test exited $code -> failure_kind=$kind"
+          exit "$code"
+
+      - name: Build project
+        run: npm run build --if-present # --if-present so it does not error out if the build script is missing
+
+  # the emergency response job, at the same level as the first job
+  notify-n8n-on-failure:
+    runs-on: ubuntu-latest
+    needs: build-and-test # this job waits for the first one to finish
+    # failure() is the line that makes this job trigger only if the build fails.
+    # failure() alone would also fire for infrastructure problems (port already
+    # bound, DNS, runner disk). Those have nothing to fix in the source, and the
+    # model would invent a bogus patch and open a PR for them.
+    # Fires on a failing push to main (first heal), and on a failing HEAL PR (retry). Human PRs
+    # (no ai-fix- prefix) never wake the healer.
+    if: >-
+      failure() && needs.build-and-test.outputs.failure_kind == 'code' &&
+      (github.event_name == 'push' || startsWith(github.head_ref, 'ai-fix-'))
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    env:
+      # Total model attempts per heal PR: the first heal plus 2 retries. The counter is the
+      # `Heal-Attempt: N` trailer the healer stamps on every commit it pushes, so it can't be
+      # reset by re-running the workflow, and a model that can't fix a bug stops after this.
+      MAX_ATTEMPTS: 3
+    steps:
+      - name: Decide - heal, retry, or give up
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ "$EVENT" = "push" ]; then
+            { echo "branch=$GITHUB_REF_NAME"; echo "commit=$GITHUB_SHA"; echo "attempt=0"; echo "action=heal"; } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # pull_request: judge the PR HEAD commit, not the merge commit github.sha points at
+          msg=$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA" --jq .commit.message)
+          attempt=$(printf '%s\n' "$msg" | sed -n 's/^Heal-Attempt: *\([0-9][0-9]*\) *$/\1/p' | tail -n 1)
+          if [ -z "$attempt" ]; then
+            action=none   # a human pushed to the heal branch: they own it now
+            echo "::notice::head commit has no Heal-Attempt trailer - a human pushed; not re-healing"
+          elif [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+            action=giveup
+          else
+            action=heal
+          fi
+          { echo "branch=$HEAD_REF"; echo "commit=$HEAD_SHA"; echo "attempt=${attempt:-0}"; echo "action=$action"; } >> "$GITHUB_OUTPUT"
+          echo "event=$EVENT attempt=${attempt:-none} cap=$MAX_ATTEMPTS -> $action"
+
+      # send the failure details to the n8n webhook so the self-healing workflow can start
+      - name: Trigger n8n webhook
+        if: steps.decide.outputs.action == 'heal'
+        # The webhook host is a tunnel that is only up while the healer is deployed. When it is
+        # down, warn instead of failing: a dead healer is not a failure of this commit.
+        # the pipe symbol (|) lets us write a clean multi-line command.
+        # curl -X POST sends the request to the webhook URL.
+        # secrets.N8N_WEBHOOK_URL: we use secrets to keep sensitive URLs hidden from the public
+        #   (they are set in the repo's GitHub settings, under secrets and variables > actions).
+        # -H "Content-Type: application/json" says the body we send is JSON.
+        # -H "X-Webhook-Secret: ..." is a secret token, so only our authorized pipeline can talk to n8n.
+        # -d '{...}' is the body: run_id is github.run_id, repo is github.repository,
+        #   branch is the branch name, commit is the commit SHA, and actor is the GitHub username.
+        run: |
+          curl -sS --fail --max-time 20 -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -H "X-Webhook-Secret: ${{ secrets.N8N_WEBHOOK_SECRET }}" \
+            -d '{
+              "run_id": "${{ github.run_id }}",
+              "repo": "${{ github.repository }}",
+              "branch": "${{ steps.decide.outputs.branch }}",
+              "commit": "${{ steps.decide.outputs.commit }}",
+              "actor": "${{ github.actor }}",
+              "failure_kind": "${{ needs.build-and-test.outputs.failure_kind }}",
+              "attempt": "${{ steps.decide.outputs.attempt }}",
+              "pr_number": "${{ github.event.pull_request.number }}"
+            }' || echo "::warning::n8n webhook unreachable - heal not triggered"
+
+      - name: Give up at the attempt cap
+        if: steps.decide.outputs.action == 'giveup'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "The self-healing pipeline made ${{ steps.decide.outputs.attempt }} attempts and CI still fails, so it has stopped (cap: $MAX_ATTEMPTS). This one needs a human."
+          echo "::warning::heal attempt cap reached (${{ steps.decide.outputs.attempt }}/$MAX_ATTEMPTS) - commented on PR #$PR"

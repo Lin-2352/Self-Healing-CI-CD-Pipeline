@@ -32,6 +32,9 @@ open two competing fix PRs. The backend can also take its failures from n8n thro
 
 ## Getting started
 
+On Windows, `launcher/` has double-click scripts for every step below, with the order in
+`launcher/README.md`.
+
 1. Bring up the model: `kaggle/README.md`, section "Deploy the live endpoint". The tunnel URL is saved
    locally when the endpoint is ready.
 2. Point the backend at it: `python kaggle/tools/backend_env.py --check` writes the endpoint URL and key
