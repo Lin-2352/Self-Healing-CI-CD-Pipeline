@@ -15,6 +15,10 @@ project root on their own, so they work from wherever the repository is checked 
 | Live heal with the n8n workflow | `start/1_start_model_on_kaggle.bat`, `start/2_load_workflow_into_n8n.bat`, `start/3_start_n8n_live.bat` | `end/stop_everything.bat` |
 | Run ci-heal-backend against the model | `start/1_start_model_on_kaggle.bat`, `start/4_start_backend.bat` | `end/stop_backend.bat`, then `end/stop_model_on_kaggle.bat` |
 
+The model URL changes on every Kaggle boot. For the cloud n8n, `1_start_model_on_kaggle.bat` updates the
+`QWEN_BASE_URL` variable itself once `setup_cloud_api_key.bat` has been run. The local n8n takes the URL when
+`2_load_workflow_into_n8n.bat` imports the workflow.
+
 Run only one healer per repository at a time (see the root `README.md`): the n8n workflow and the
 backend both react to the same failed run.
 
@@ -23,7 +27,8 @@ backend both react to the same failed run.
 | script | what it runs | takes | notes |
 |---|---|---|---|
 | `start_n8n_local_only.bat` | `tools/golive/up.py --local`, then opens http://localhost:5678 | ~25 s | n8n on this PC only. No tunnel, no change on GitHub. Log in with the owner account you created the first time. |
-| `1_start_model_on_kaggle.bat` | `kaggle/tools/status.py`, `build_endpoint.py`, `push.py endpoint`, `watch_deploy.py` | ~4 min | Starts Qwen3.8-27B on a Kaggle 2×T4 session and saves its URL to `%LOCALAPPDATA%\selfheal-n8n\qwen_url.txt`. Uses Kaggle GPU quota until you stop it. `push.py` refuses to start a second session. |
+| `1_start_model_on_kaggle.bat` | `kaggle/tools/status.py`, `build_endpoint.py`, `push.py endpoint`, `watch_deploy.py`, then `tools/golive/set_cloud_qwen_url.py` | ~4 min | One click: starts Qwen3.8-27B on a Kaggle 2×T4 session, saves its URL to `%LOCALAPPDATA%\selfheal-n8n\qwen_url.txt`, and writes it into the cloud n8n variable `QWEN_BASE_URL`. Uses Kaggle GPU quota until you stop it. `push.py` refuses to start a second session. If the cloud API key is not set up, the model still starts and the script says the variable was not updated. |
+| `setup_cloud_api_key.bat` | `tools/golive/set_cloud_qwen_url.py --save-key` | once | Asks for your cloud n8n API key (Settings > n8n API > Create an API key) at a hidden prompt and stores it in `%LOCALAPPDATA%\selfheal-n8n\cloud_api.json`, outside the repository. Needed once, before the first one-click start. |
 | `2_load_workflow_into_n8n.bat` | `tools/golive/down.py`, then `tools/golive/n8n_import.py` | ~1 min | Stops n8n, then imports the workflow and credentials with the new model URL and activates it. Run it after every new Kaggle session, because the URL changes each time. |
 | `3_start_n8n_live.bat` | `tools/golive/up.py` | ~1 min | Starts n8n and a public Cloudflare tunnel, then points this repo's `N8N_WEBHOOK_URL` secret at it. Needs `gh auth login` done once. After this, a failing push that changes `demo-app/` triggers a heal. |
 | `4_start_backend.bat` | `kaggle/tools/backend_env.py --check`, then `uvicorn app.main:app --port 8000` in `ci-heal-backend/.venv` | ~10 s | Writes the model URL and key into `ci-heal-backend/.env` and runs the backend in that window. Opens http://127.0.0.1:8000/docs. `DRY_RUN=true` by default, so it writes nothing to GitHub. |
