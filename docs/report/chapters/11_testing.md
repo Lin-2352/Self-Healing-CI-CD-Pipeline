@@ -24,7 +24,7 @@ The project has four layers of checks, from fast and local to slow and live. The
 | test_multifile_eval | 13 | scoring of the multi-file study |
 | test_bakeoff_eval | 52 | the bake-off kernel's functions and decision rule |
 
-The generator check regenerates `n8n/self_healing_pipeline.json` from `tools/gen_n8n.py` and the node files and requires a byte-identical result, so the file in the repository cannot drift from its source. In the last full run all 13 checks passed (12 without the rig, 13 with it).
+The generator check regenerates `n8n/self_healing_pipeline.json` from `tools/gen_n8n.py` and the node files and requires a byte-identical result, so the file in the repository cannot drift from its source. In the last full run every check passed: 12 without the rig and 13 with it.
 
 The harness has a known blind spot, stated in its own docstring: it resolves `$('Node')` lookups that n8n's sandbox does not resolve for Code nodes. A passing harness run therefore does not prove that an accessor works in n8n. This is the reason for layer 3.
 

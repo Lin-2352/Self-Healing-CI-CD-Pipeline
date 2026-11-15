@@ -237,7 +237,7 @@ The webhook body has these fields (source: .github/workflows/demo-ci.yml, step "
 | `attempt` | `0` on a push, the `Heal-Attempt` number on a fix PR | Turns thinking on; numbers the next commit |
 | `pr_number` | The PR number on a pull request event | Where a failure comment is posted |
 
-All values are sent as strings inside the JSON. On a push event the expression for `pr_number` has nothing to read, so it should arrive empty. That is my inference from the expression, not something I observed. `tools/nodes/explain_failure.js` treats anything that is not all digits as "no PR".
+All values are sent as strings inside the JSON. On a push event the expression for `pr_number` has nothing to read, so it should arrive empty. This is inferred from the expression; we did not observe it. `tools/nodes/explain_failure.js` treats anything that is not all digits as "no PR".
 
 ### Trust boundaries and secrets
 
@@ -274,7 +274,7 @@ The n8n workflow and ci-heal-backend are two separate healers, and a repository 
 
 They also decide differently. The n8n workflow acts only on failures the CI job marked as `code`, and then always tries a fix. The backend classifies the failure first and then reruns a flaky job, opens a fix PR or opens an issue, depending on its confidence (source: ci-heal-backend/README.md). Their attempt counters are separate too: n8n uses the `Heal-Attempt` trailer, while the backend counts fix decisions in its own database (source: ci-heal-backend/README.md, Architecture). Neither counter knows about the other.
 
-The backend has an endpoint `POST /webhooks/n8n` for failures forwarded from n8n (source: ci-heal-backend/README.md). I found no node in the shipped workflow that calls it, so that route is not part of the n8n healer described in this report.
+The backend has an endpoint `POST /webhooks/n8n` for failures forwarded from n8n (source: ci-heal-backend/README.md). We found no node in the shipped workflow that calls it, so that route is not part of the n8n healer described in this report.
 
 ### Design decisions
 
@@ -304,7 +304,7 @@ The price is that a hard bug needs one more CI cycle. In the live retry rounds, 
 
 #### The failure_kind gate
 
-An infrastructure problem, such as a port that is already in use, has nothing to fix in the source. If the model were asked anyway, it would invent a patch. The demo tests therefore exit with 75 for environment problems and with 1 for code failures, and the workflow maps these to `infra` and `code` (source: demo-app/test.js, header comment). I checked on this machine that `npm test` exits with 75 when port 5000 is already taken. The gate exists twice: the notify job runs only for `code`, and `Build AI Prompt` throws `Refusing to run` for any other non-empty `failure_kind`, because the webhook is a public address that anyone could post to (source: tools/nodes/build_ai_prompt.js).
+An infrastructure problem, such as a port that is already in use, has nothing to fix in the source. If the model were asked anyway, it would invent a patch. The demo tests therefore exit with 75 for environment problems and with 1 for code failures, and the workflow maps these to `infra` and `code` (source: demo-app/test.js, header comment). We checked that `npm test` exits with 75 when port 5000 is already taken. The gate exists twice: the notify job runs only for `code`, and `Build AI Prompt` throws `Refusing to run` for any other non-empty `failure_kind`, because the webhook is a public address that anyone could post to (source: tools/nodes/build_ai_prompt.js).
 
 #### Log redirect handling
 
@@ -476,7 +476,7 @@ The application is small on purpose. It stands in for a real project, and the pi
 
 The four API checks are `/health` returning `{"status":"ok"}`, `/greet/Ada` returning `Hello, Ada!`, `/sum?a=2&b=3` returning a sum of 5, and `/sum?a=x&b=3` returning status 400 with an error message (source: demo-app/test/api.test.js).
 
-Both tests follow the same exit-code contract. A wrong status or body prints a line starting with `CODE_FAILURE` and exits with 1. If the server cannot start, the `error` event on the server prints a line starting with `INFRA_FAILURE` and exits with 75. For the smoke test, a failed `listen` such as `EADDRINUSE` goes to the infrastructure path, while a server that listens but does not answer itself counts as a code failure (source: demo-app/test.js, comments). I ran `npm test` with port 5000 already occupied and got exit code 75, which is the value the workflow turns into `infra`.
+Both tests follow the same exit-code contract. A wrong status or body prints a line starting with `CODE_FAILURE` and exits with 1. If the server cannot start, the `error` event on the server prints a line starting with `INFRA_FAILURE` and exits with 75. For the smoke test, a failed `listen` such as `EADDRINUSE` goes to the infrastructure path, while a server that listens but does not answer itself counts as a code failure (source: demo-app/test.js, comments). We ran `npm test` with port 5000 already occupied and got exit code 75, which is the value the workflow turns into `infra`.
 
 Because the script joins the two tests with `&&`, a failing smoke test stops the run and the API test never starts. The exit code of the whole `npm test` is the one from the failing command.
 
@@ -492,7 +492,7 @@ The `ai-fix-` prefix test has a second purpose, which is to stop the healer from
 
 ## The n8n Healing Workflow
 
-The workflow "Self-Healing CI/CD Pipeline (Qwen3.8)" has 26 nodes (source: n8n/self_healing_pipeline.json). Most of the time it is a straight line of nodes with two forks. This chapter follows one run through seven stages and then explains the retry and re-run behaviour. It does not repeat every node setting. The node-by-node reference, with each node's type, endpoint, error setting and tests, is in `docs/architecture/n8n-workflow.md`. I checked the points below against the workflow JSON, `tools/gen_n8n.py` and `tools/nodes/*.js`.
+The workflow "Self-Healing CI/CD Pipeline (Qwen3.8)" has 26 nodes (source: n8n/self_healing_pipeline.json). Most of the time it is a straight line of nodes with two forks. This chapter follows one run through seven stages and then explains the retry and re-run behaviour. It does not repeat every node setting. The node-by-node reference, with each node's type, endpoint, error setting and tests, is in `docs/architecture/n8n-workflow.md`. We checked the points below against the workflow JSON, `tools/gen_n8n.py` and `tools/nodes/*.js`.
 
 Two facts help when reading the stages. The JSON is generated by `tools/gen_n8n.py` from node specifications, and the Code node bodies are separate files in `tools/nodes/`. And a node marked `onError: continueRegularOutput` does not stop the run when it fails. It passes an item with an `error` key to the next node, which is how failures are routed to the reporting stage.
 
@@ -536,7 +536,7 @@ The node **Model OK?** checks the result. The answer counts as good when there i
 
 Both paths meet at **Assemble Model Reply**, which rebuilds a streamed answer into the usual completion object. It rejects a stream that ended early, an empty one, and one with an error event.
 
-The fallback has a documented weakness. In the one test on n8n Cloud, using the free OpenAI credits that come with the trial, it answered `Forbidden` for runs started by the webhook (source: docs/guides/cloud-n8n.md). So I treat it as untested until a real OpenAI key is attached.
+The fallback has a documented weakness. In the one test on n8n Cloud, using the free OpenAI credits that come with the trial, it answered `Forbidden` for runs started by the webhook (source: docs/guides/cloud-n8n.md). So we treat it as untested until a real OpenAI key is attached.
 
 ### Stage 5: extract the fix
 
@@ -548,7 +548,7 @@ The fallback has a documented weakness. In the one test on n8n Cloud, using the 
 4. It rejects the answer if the result equals the original file.
 5. It parses the patched text with `new Function(...)`, which checks the syntax without running the code. If the parse fails, no pull request is opened.
 
-The parse check has a known limit, which its comment states plainly: a fix that parses but is wrong still goes through, and the pull request's own CI is what catches it. I could not confirm how the check behaves for a non-JavaScript file, since it uses a JavaScript parser; the demo app is Node, so this never came up.
+The parse check has a known limit, which its comment states plainly: a fix that parses but is wrong still goes through, and the pull request's own CI is what catches it. We could not confirm how the check behaves for a non-JavaScript file, since it uses a JavaScript parser; the demo app is Node, so this never came up.
 
 The node then chooses the branch name. If the model gave none, or `main` or `master`, the node uses `ai-fix-` plus a timestamp. It appends the first 7 characters of the commit. On a retry it replaces the name with the branch from the webhook. The commit message is the PR title, a blank line and `Heal-Attempt: <attempt + 1>`.
 
@@ -573,7 +573,7 @@ When no fix is produced, **Explain Failure** builds a comment and **Post Failure
 
 This stage exists because of a failure found in testing. Before it, a retry that died at the tunnel's time limit left a red pull request with no explanation (source: docs/results/GOLIVE_RESULTS.md, Round 3, "Known limits"). In the later round, the stage was proved with the model endpoint switched off: a comment appeared on the failing commit, and a comment appeared on the PR for a retry (source: docs/results/GOLIVE_RESULTS.md, Round 5, Fix 2).
 
-The stage has gaps. Several nodes have no error setting (Fetch Job Logs, Fetch Changed Files, Build AI Prompt, Get Model URL, Get File SHA, Push Fix File and Post Failure Comment). If one of them fails, n8n records an execution error but nothing is written to GitHub (source: docs/architecture/n8n-workflow.md, "Known limits"). The Round 5 notes also say that a failure after the fix is pushed, between Create Branch and Open Pull Request, is not covered by a comment. I did not re-check that sentence against later changes.
+The stage has gaps. Several nodes have no error setting (Fetch Job Logs, Fetch Changed Files, Build AI Prompt, Get Model URL, Get File SHA, Push Fix File and Post Failure Comment). If one of them fails, n8n records an execution error but nothing is written to GitHub (source: docs/architecture/n8n-workflow.md, "Known limits"). The Round 5 notes also say that a failure after the fix is pushed, between Create Branch and Open Pull Request, is not covered by a comment. We did not re-check that sentence against later changes.
 
 ### Retry behaviour
 
@@ -585,7 +585,7 @@ One detail of the retry shows up at the last step. The new commit is on the PR's
 
 The same failed commit can reach the workflow twice, for example when someone re-runs the CI job. The workflow is built so that the second run updates the first one's work instead of breaking. The branch name ends in the first 7 characters of the commit, so the same commit gives the same name when the model repeats its choice. A repeat of the same commit lands on the same branch (a measured case, according to a comment in tools/nodes/extract_ai_response.js). Create Branch tolerates the 422, Get File SHA reads the file's current blob on that branch, Push Fix File updates it, and if the PR already exists, Heal Outcome reports `pr_already_open` and leaves it alone.
 
-This holds only when the model proposes the same branch name. Because the name comes from the model, a different name for the same commit would open a second branch and a second PR. I did not test that case.
+This holds only when the model proposes the same branch name. Because the name comes from the model, a different name for the same commit would open a second branch and a second PR. We did not test that case.
 
 ## The Model Endpoint on Kaggle
 
@@ -611,7 +611,7 @@ The build in production is a stock llama.cpp build, which `docs/results/GOLIVE_R
 
 ### Model file and quantization
 
-The model is `Qwen3.8-27B-UD-Q4_K_XL.gguf` from the Hugging Face repository `unsloth/Qwen3.8-27B-GGUF`, 17.6 GB (source: `kaggle/endpoint/models.json`). GGUF is the single-file format llama.cpp reads: it holds the weights, the tokenizer and the chat template together. A name like Q4_K_XL says how the weights were compressed: roughly 4-bit blocks of the "K" kind, with the "XL" mix keeping some tensors at higher precision, and the "UD" prefix marks Unsloth's dynamic variant (this reading of the name is general knowledge about the format, not something the project measured). For scale, 17.6 GB over about 27 billion weights is around 5 bits per weight on average (my arithmetic from those two figures).
+The model is `Qwen3.8-27B-UD-Q4_K_XL.gguf` from the Hugging Face repository `unsloth/Qwen3.8-27B-GGUF`, 17.6 GB (source: `kaggle/endpoint/models.json`). GGUF is the single-file format llama.cpp reads: it holds the weights, the tokenizer and the chat template together. A name like Q4_K_XL says how the weights were compressed: roughly 4-bit blocks of the "K" kind, with the "XL" mix keeping some tensors at higher precision, and the "UD" prefix marks Unsloth's dynamic variant (this reading of the name is general knowledge about the format, not something the project measured). For scale, 17.6 GB over about 27 billion weights is around 5 bits per weight on average (our arithmetic from those two figures).
 
 `fetch()` in the script lists the `.gguf` files in the repository, skips anything with `mmproj` in its name, and downloads the first file that matches the registry pattern. If that fails it tries `UD-Q4_K_M` and then `UD-Q6_K` from the same repository. Downloads took 65 s (v8), 363 s (v9), 92 s (v10), 84 s (v11), 91 s (v12), 89 s and 76 s (the two attempts logged under v14), and 82 s (v16) (source: boot logs of those runs). Only v9 was slow, and the logs do not say why.
 
@@ -667,8 +667,6 @@ If either lever is missing the script prints a warning that the endpoint will be
 
 `thinking_check()` then asks "What is 17 * 23?" twice, once plain and once with thinking requested. A reply counts as thinking if it has `reasoning_content` or a `<think>` block. The expected result is false then true. Boot logs v14, v15 and v16 all show `thinking by default : False` and `thinking when asked : True` with the answer 391 both times (source: `stream.log` of v14 and v15, `boot.log` of v16). The older runs v8 to v12 predate this check.
 
-In the saved files v12 has no thinking-check lines and v14, v15 and v16 do.
-
 The boot benchmark of each session that reached the end was this (source: the `SELECTED` lines of the boot logs).
 
 | Session | Date | Average tok/s | Best tok/s | MTP accept rate |
@@ -708,7 +706,7 @@ The one-click start file `launcher/start/1_start_model_on_kaggle.bat` runs the s
 
 ### Quota and stopping
 
-A Kaggle quota dialog read on 2026-09-07 showed 30 hours of GPU per week (source: `docs/research/KAGGLE_ENV_MEASURED.md`). The figure is from one dialog on one day, and Kaggle may change it. At 1.5 hours per window and ignoring boot time, 30 hours is at most 20 windows a week (my arithmetic).
+A Kaggle quota dialog read on 2026-09-07 showed 30 hours of GPU per week (source: `docs/research/KAGGLE_ENV_MEASURED.md`). The figure is from one dialog on one day, and Kaggle may change it. At 1.5 hours per window and ignoring boot time, 30 hours is at most 20 windows a week (our arithmetic).
 
 A push does not replace a running kernel. Kaggle starts a second session, which would use quota twice, so `push.py` refuses to push while any of the four project kernels is `RUNNING` or `QUEUED` unless `--force` is given. The Kaggle README adds that GPU kernels can wait in the queue for hours (source: `kaggle/README.md`).
 
@@ -732,11 +730,11 @@ Speed was measured in four settings, and the figures do not belong in one column
 | Live decode, round 2 | 27.73 | `docs/results/GOLIVE_RESULTS.md` |
 | Bake-off baseline, ctx 131072 | 23.4 | `docs/results/MODEL_BAKEOFF.md` |
 
-I recomputed rigs A to D from `eval/runs/kout_speed/results.json`: 60 calls, no errors, and the same medians. In rig D the MTP head accepted drafts at a median rate of 0.96, and the per-card memory was 9051 MiB on each card, against uneven pairs such as 7761 and 9371 MiB in rig A (source: the same file). The tensor-split gain is smaller than the +47 to +68 percent reported for Ampere machines. The study traces this to PCIe: the two T4 cards have no NVLink, and it estimates the cost of combining results at about 24 ms per token (source: `docs/results/SPEED_LEVERS_EVAL.md`).
+We recomputed rigs A to D from `eval/runs/kout_speed/results.json`: 60 calls, no errors, and the same medians. In rig D the MTP head accepted drafts at a median rate of 0.96, and the per-card memory was 9051 MiB on each card, against uneven pairs such as 7761 and 9371 MiB in rig A (source: the same file). The tensor-split gain is smaller than the +47 to +68 percent reported for Ampere machines. The study traces this to PCIe: the two T4 cards have no NVLink, and it estimates the cost of combining results at about 24 ms per token (source: `docs/results/SPEED_LEVERS_EVAL.md`).
 
 The live figures are lower than the rig because the inputs differ. Round 1 had an MTP accept rate of about 0.89 against 0.965 in the rig, since a search-and-replace answer is less predictable than a whole file that mostly copies the input (source: `docs/results/GOLIVE_RESULTS.md`). The same document ran with a context of 131072 against 8192 in the rig. Round 2 decoded faster at the same settings, and the document says the reason is not proven.
 
-Prompt reading ran at 274 to 323 tok/s in round 1, which is about 2.2 s for a prompt of roughly 700 tokens. A model call through the tunnel carried 5 to 6 s of fixed overhead on top of generation (source: `docs/results/GOLIVE_RESULTS.md`). The study that set `--spec-draft-n-max` named values 3 and 4 as the next thing to test, and I found no result for them in the documents, so 2 is the value in use but not a tuned one.
+Prompt reading ran at 274 to 323 tok/s in round 1, which is about 2.2 s for a prompt of roughly 700 tokens. A model call through the tunnel carried 5 to 6 s of fixed overhead on top of generation (source: `docs/results/GOLIVE_RESULTS.md`). The study that set `--spec-draft-n-max` named values 3 and 4 as the next thing to test, and we found no result for them in the documents, so 2 is the value in use but not a tuned one.
 
 ## ci-heal-backend
 
@@ -862,24 +860,24 @@ All six were classified correctly on the first sample and all 15 candidates that
 
 ### Tests
 
-The tests run offline with a mock model and a mocked GitHub client. At the last commit, `python -m pytest -q` in `ci-heal-backend` collected and passed 157 tests in 16 test modules (run on an export of that commit, in about 17 seconds). The modules cover the decision engine, agreement scoring, patch application, secret redaction, log trimming, the classifier and fix generator, the HTTP LLM client, the GitHub client, the repositories and statistics, the webhooks, health endpoints, settings, and a test that `.env.example` keeps the same keys as `Settings`. The working tree contains a new `tests/test_security.py` and edits to `tests/test_webhooks.py` for the audit fixes below, so a count taken now differs from 157.
+The tests run offline with a mock model and a mocked GitHub client. At the commit before the audit fixes described below, `python -m pytest -q` in `ci-heal-backend` collected and passed 157 tests in 16 test modules (run on an export of that commit, in about 17 seconds). The modules cover the decision engine, agreement scoring, patch application, secret redaction, log trimming, the classifier and fix generator, the HTTP LLM client, the GitHub client, the repositories and statistics, the webhooks, health endpoints, settings, and a test that `.env.example` keeps the same keys as `Settings`. The audit fixes, committed as `4bfd37d`, added `tests/test_security.py` and new cases in `tests/test_webhooks.py`; after them 205 tests pass in 17 test modules.
 
 ### Known limitations from an audit
 
-A read-only security review of the code produced 21 findings. Each one below was checked again against the code for this chapter, and all 21 were confirmed by reading it. None was reproduced by running a failing request. The wording of each row says what the code does, not what was observed live.
+A read-only security review of the code produced 21 findings. Each one below was checked again against the code for this chapter, and all 21 were confirmed by reading it. None was reproduced by running a failing request, except the four that were then fixed test-first (items 1, 8, 9 and 10, marked "fixed" in the table). The wording of each row says what the code did when it was reviewed, not what was observed live.
 
-| No. | Finding, as read from the code | Where |
+| No. | Finding, as read from the code when it was reviewed | Where |
 |---|---|---|
-| 1 | The run's origin is not checked. Neither `_from_github` nor `_from_api` reads the head repository or the triggering event, so a workflow run from a fork pull request can reach the bot. | app/api/webhooks.py |
+| 1 (fixed) | The run's origin was not checked. Neither `_from_github` nor `_from_api` reads the head repository or the triggering event, so a workflow run from a fork pull request can reach the bot. | app/api/webhooks.py |
 | 2 | The worker flushes a write on the shared SQLite file and then awaits model and GitHub calls before it commits. Webhook intake is an `async def` that makes synchronous database calls on the event loop. A second delivery can wait on the lock in the loop thread, blocking the worker that holds it, until the 5 second busy timeout gives "database is locked". | app/services/orchestrator.py, app/api/webhooks.py, app/db/session.py |
 | 3 | A failure can stay in `processing` after a restart. Startup recovery skips a `processing` row that started less than 900 seconds earlier, and it runs only at startup. A cancelled worker task is not caught by `except Exception` in `Orchestrator.run`, so the row is never moved on. | app/db/repositories.py, app/main.py |
 | 4 | The worker commits once at the end. If the run times out or raises after a pull request was opened on GitHub, `_fail` rolls back and the decision row holding the PR URL is lost. | app/services/orchestrator.py |
 | 5 | A fix is closed by the first finished run found on its branch. `find_open_fix` matches on repo and branch only, and neither the commit nor the workflow is compared. | app/api/webhooks.py, app/db/repositories.py |
 | 6 | Attempt budgets count rows, not outcomes. `count_fix_attempts` and `count_retries` count every FIX or RETRY row, including dry-run rows and rows whose GitHub action failed. | app/db/repositories.py |
 | 7 | `find_open_retry` has no `dry_run` filter, so a dry-run retry row can be closed by a real run. | app/db/repositories.py |
-| 8 | Defaults fail open outside Docker. `APP_ENV` defaults to `dev`, where an empty webhook secret accepts unsigned deliveries and an empty `API_TOKEN` leaves the read API open. Nothing rejects placeholder secrets, and a test loads `.env.example` values such as `replace-me` into `Settings`. The Dockerfile sets `APP_ENV=prod`, which closes both. | app/config.py, app/api/webhooks.py, app/deps.py, tests/test_env_example.py |
-| 9 | A null conclusion is treated as failure on the n8n route. `_from_api` replaces a non-string conclusion with `failure`. The GitHub route ignores it. | app/api/webhooks.py |
-| 10 | A non-ASCII header makes `compare_digest` raise. The length check passes for an equal-length value, then `hmac.compare_digest` raises `TypeError` on a non-ASCII string, giving a 500 instead of a 401. | app/security.py |
+| 8 (fixed) | Defaults failed open outside Docker. `APP_ENV` defaults to `dev`, where an empty webhook secret accepts unsigned deliveries and an empty `API_TOKEN` leaves the read API open. Nothing rejects placeholder secrets, and a test loads `.env.example` values such as `replace-me` into `Settings`. The Dockerfile sets `APP_ENV=prod`, which closes both. | app/config.py, app/api/webhooks.py, app/deps.py, tests/test_env_example.py |
+| 9 (fixed) | A null conclusion was treated as failure on the n8n route. `_from_api` replaces a non-string conclusion with `failure`. The GitHub route ignores it. | app/api/webhooks.py |
+| 10 (fixed) | A non-ASCII header made `compare_digest` raise. The length check passes for an equal-length value, then `hmac.compare_digest` raises `TypeError` on a non-ASCII string, giving a 500 instead of a 401. | app/security.py |
 | 11 | The request body is read in full by `request.body()` before the `WEBHOOK_MAX_BYTES` check. | app/api/webhooks.py |
 | 12 | Only `httpx.TimeoutException` is caught, in both the GitHub client and the LLM client. Other transport errors, such as a refused connection, escape the retry loop. | app/services/github_client.py, app/llm/http_client.py |
 | 13 | Rate-limit waits are unbounded. The delay comes from `Retry-After` or `X-RateLimit-Reset` with no upper cap. | app/services/github_client.py |
@@ -892,7 +890,7 @@ A read-only security review of the code produced 21 findings. Each one below was
 | 20 | Logs lack tracebacks and delivery ids. Failures are logged as the exception class name only, there is no `exc_info`, and the `X-GitHub-Delivery` header is never read. | app/services/orchestrator.py, app/api/webhooks.py |
 | 21 | `GET /health/llm` has no authentication dependency. It only reports `ok` or `error` for each role. | app/api/health.py |
 
-Items 1, 8, 9 and 10 are being fixed with tests in this same change. A status table in `docs/results/BACKEND_AUDIT.md` records the outcome. The other 17 items are open.
+Items 1, 8, 9 and 10 are fixed in commit `4bfd37d`, each with a test that was run before the fix and failed for the stated reason. The fixes: a run from a fork is ignored on both routes (1); outside `dev` the app refuses to start when a secret is empty or `replace-me` (8); the n8n route needs a completed run with a conclusion, otherwise it answers 409 (9); and signatures and tokens are compared as UTF-8 bytes, so a non-ASCII header gives 401 instead of an error (10). After the fixes 205 tests pass. A status table in `docs/results/BACKEND_AUDIT.md` records the outcome. The other 17 items are open.
 
 ## Evaluation
 
@@ -900,13 +898,13 @@ Items 1, 8, 9 and 10 are being fixed with tests in this same change. A status ta
 
 The project ran nine studies, each on the Kaggle machine or against the live pipeline. This chapter gives them in the order they answer questions about the healer: first which model file to load, then how to make it fast, then what output format to ask for, then how often the fix is right, and last how the whole pipeline behaves live. Each section states the question, the method, the decision rule when the results document names one, the headline numbers and the conclusion.
 
-Every number comes from a results document in `docs/results/` or `docs/old/`, with the file named after it in brackets. Where saved data exists under `eval/runs/`, I recomputed the headline numbers from it. A section says so when the data confirmed the document, and says so when it did not or when the data was not kept. Disagreements between documents are named where they occur and collected in the last table.
+Every number comes from a results document in `docs/results/` or `docs/old/`, with the file named after it in brackets. Where saved data exists under `eval/runs/`, we recomputed the headline numbers from it. A section says so when the data confirmed the document, and says so when it did not or when the data was not kept. Disagreements between documents are named where they occur and collected in the last table.
 
 ### The evaluation harness
 
 The `eval/` folder holds the test cases, the scorers, the scripts that build Kaggle kernels from them, and the saved results in `eval/runs/`.
 
-**Cases.** There are 5 control cases (`eval/cases/eval_cases.json`), 6 hard single-file cases (`eval/cases/hard_cases.json`) and 6 multi-file cases (`eval/cases/multifile_cases.json`). The control cases are the five breakages the live runner pushes to the demo repository: a missing `app` line, a misspelled method, a missing `require`, a missing closing brace and a wrong status check. The hard cases come from the same file, but the CI log no longer points at the bug. The multi-file cases use the demo app's `src/app.js`, `src/format.js` and `test/api.test.js` (source: `docs/results/SHIPPED_QUALITY_EVAL.md`, `docs/results/MULTIFILE_EVAL.md`). I counted the cases in the three JSON files.
+**Cases.** There are 5 control cases (`eval/cases/eval_cases.json`), 6 hard single-file cases (`eval/cases/hard_cases.json`) and 6 multi-file cases (`eval/cases/multifile_cases.json`). The control cases are the five breakages the live runner pushes to the demo repository: a missing `app` line, a misspelled method, a missing `require`, a missing closing brace and a wrong status check. The hard cases come from the same file, but the CI log no longer points at the bug. The multi-file cases use the demo app's `src/app.js`, `src/format.js` and `test/api.test.js` (source: `docs/results/SHIPPED_QUALITY_EVAL.md`, `docs/results/MULTIFILE_EVAL.md`). We counted the cases in the three JSON files.
 
 **Same code as production.** The later studies do not paraphrase the pipeline. They run the real node code from `tools/nodes/` (`build_ai_prompt.js`, `extract_ai_response.js`, and for multi-file cases `Pick Candidate Files`) under `node`, send the request body unchanged to the model, and apply the reply with the real extraction node, so its exactly-once and syntax gates count (source: `docs/results/SHIPPED_QUALITY_EVAL.md`, `docs/results/MODEL_BAKEOFF.md`).
 
@@ -916,7 +914,7 @@ The `eval/` folder holds the test cases, the scorers, the scripts that build Kag
 
 **Scorer self-tests.** Each scorer is tested locally before it is trusted. `eval/test_shipped_eval.py`, `eval/test_bakeoff_eval.py`, `eval/test_multifile_eval.py` and `eval/check_multifile_cases.py` feed known-good and known-bad outputs through it, and the saved outputs in `eval/runs/testall/` report `FAILURES: 0` for each. The shipped-quality test includes 15 real captured model replies, all of which score as functional heals. The self-test of the speed-levers study is a warning: it passed every assertion while the check it protected gave a false answer, because its fixture came from a dump of the binary and not from a real log (source: `docs/results/SPEED_LEVERS_EVAL.md`). After that the engagement tests ran against the four captured server logs.
 
-**Re-scoring.** Every result file stores the raw model reply and a flag that says whether it was cut short. `eval/rescore_shipped.py`, `eval/rescore_multifile.py` and `eval/rescore_bakeoff.py` recompute every verdict from the raw text alone, with the same node code and a local express. I ran all three. The shipped-quality file re-scored 84 of 84 calls with no disagreement, the multi-file file 57 of 57, and the bake-off file 232 of 232, and the bake-off run also reproduced its decision (source: output of the three scripts, run for this chapter; the same counts are in `docs/results/SHIPPED_QUALITY_EVAL.md`, `MULTIFILE_EVAL.md` and `MODEL_BAKEOFF.md`). The speed-levers run did not save raw output, so its correctness column cannot be re-scored.
+**Re-scoring.** Every result file stores the raw model reply and a flag that says whether it was cut short. `eval/rescore_shipped.py`, `eval/rescore_multifile.py` and `eval/rescore_bakeoff.py` recompute every verdict from the raw text alone, with the same node code and a local express. We ran all three. The shipped-quality file re-scored 84 of 84 calls with no disagreement, the multi-file file 57 of 57, and the bake-off file 232 of 232, and the bake-off run also reproduced its decision (source: output of the three scripts, run for this chapter; the same counts are in `docs/results/SHIPPED_QUALITY_EVAL.md`, `MULTIFILE_EVAL.md` and `MODEL_BAKEOFF.md`). The speed-levers run did not save raw output, so its correctness column cannot be re-scored.
 
 **Rig corrections.** Two studies each found that a check on log wording gave a false negative, and one found a recount option that hid a bad patch. The project's rule since then is to judge a feature by its measured effect, such as the accept rate or equal memory on both cards, and not by a log string (source: `docs/results/SPEED_LEVERS_EVAL.md`, `docs/results/SPEED_QUALITY_EVAL.md`, `docs/results/DIFF_FORMAT_EVAL.md`).
 
@@ -926,7 +924,7 @@ The `eval/` folder holds the test cases, the scorers, the scripts that build Kag
 
 **Method.** One kernel ran 9 configurations in a batch of 252 minutes on two T4 cards. Quality was a 5-case CI-failure set scored 3 points per case (valid JSON, `node --check`, correct fix). Speed came from the server's own `timings` field (source: `docs/old/QWEN38_SWEEP_RESULTS.md`). The document names no decision rule in advance. A second note covers three sweeps, 24 configurations in all (source: `docs/old/QWEN38_SPEED_CEILING.md`).
 
-**Numbers.** The raw `results.json` of these sweeps was not kept in the repository, so I could not recompute them and the figures below rest on the documents alone.
+**Numbers.** The raw `results.json` of these sweeps was not kept in the repository, so we could not recompute them and the figures below rest on the documents alone.
 
 | Config | Size (GB) | Quality | Generation tok/s |
 |---|---|---|---|
@@ -947,7 +945,7 @@ Two later results weaken parts of this study. The 8.8 tok/s figure turned out to
 
 **Method.** Four configurations (A baseline, B tensor split, C MTP, D both) on 5 scenarios with 3 repetitions each, 60 calls, temperature 0.1, context 8192, with the same production file (source: `docs/results/SPEED_LEVERS_EVAL.md`). The document names no decision rule in advance, and states the verdict afterwards: ship both.
 
-**Numbers.** I recomputed the medians from the 60 saved calls, which had no errors (checked in `eval/runs/kout_speed/results.json`).
+**Numbers.** We recomputed the medians from the 60 saved calls, which had no errors (checked in `eval/runs/kout_speed/results.json`).
 
 | Config | Median tok/s | Gain over A | Median wall time | Correct fixes | Draft accept rate |
 |---|---|---|---|---|---|
@@ -1001,7 +999,7 @@ The Bonsai speeds are not like for like, since those files fell back to layer sp
 
 (source: `docs/results/DIFF_FORMAT_EVAL.md`)
 
-**Conclusion.** Search and replace ships: the same correctness as whole file with 3.8 times fewer generated tokens and 39 seconds saved per heal. Unified diff does not ship. All three failures were the missing-brace scenario, where the patch added only an empty line. A strict `git apply` rejected it, a `--recount` retry then accepted it, and the fix pattern matched a different `});` elsewhere in the file, so the apply and fix columns read 15/15 although 3 files did not parse. The stored summary in the data file still shows 1.0 for both columns for that reason. Only the syntax check caught it. The document projects a cycle of about 65 s and says this was not measured, and that the fallback rate on a larger file was unknown. One small mismatch: the document gives the source file as 1862 characters, while the data file records 1839 (`source_chars`); I did not find which is right, and neither changes a result.
+**Conclusion.** Search and replace ships: the same correctness as whole file with 3.8 times fewer generated tokens and 39 seconds saved per heal. Unified diff does not ship. All three failures were the missing-brace scenario, where the patch added only an empty line. A strict `git apply` rejected it, a `--recount` retry then accepted it, and the fix pattern matched a different `});` elsewhere in the file, so the apply and fix columns read 15/15 although 3 files did not parse. The stored summary in the data file still shows 1.0 for both columns for that reason. Only the syntax check caught it. The document projects a cycle of about 65 s and says this was not measured, and that the fallback rate on a larger file was unknown. The two source lengths that appear do not conflict: the document's 1862 characters is the length of the known-good `test.js` (1862 bytes), and the data file's `source_chars` of 1839 is the length of the broken file the model was shown, which is 23 characters shorter.
 
 ### Shipped-format quality, with and without the CI log and thinking
 
@@ -1023,9 +1021,9 @@ The Bonsai speeds are not like for like, since those files fell back to layer sp
 
 The hard-case times and the byte-exact counts matched the data. The accept rates match the medians over all calls of each arm, and the data gave 0.894 and 0.878 for the hard calls alone, so the table is slightly mixed in what it averages. Case by case, `callback_arity` and `multi_hunk` were 0 of 3 in arms A and B and 3 of 3 in arm C, and nothing else changed.
 
-**Conclusion.** The log did not change the heal rate (12 to 12, short of the 3 needed), but it moved fixes closer to the golden file (6 to 9 byte-exact), costs about 3 seconds and stays in the prompt. Thinking passes its rule (+6 of 18) and is the only setting that ever fixed those two cases, at about four times the time: a median of 36.8 s and a worst case of 77.9 s. That led to the shipped policy of thinking on retries only. The document's caveats are that arm C saw the original broken file, not a file with a wrong first fix, so it does not measure retries, and that 3 repetitions in one session fix the magnitudes only for that session.
+**Conclusion.** The log did not change the heal rate (12 to 12, short of the 3 needed), but it moved fixes closer to the golden file (6 to 9 byte-exact), costs about 3 seconds of extra log-fetch time in the workflow (the model call itself took 9.1 s against 9.2 s) and stays in the prompt. Thinking passes its rule (+6 of 18) and is the only setting that ever fixed those two cases, at about four times the time: a median of 36.8 s and a worst case of 77.9 s. That led to the shipped policy of thinking on retries only. The document's caveats are that arm C saw the original broken file, not a file with a wrong first fix, so it does not measure retries, and that 3 repetitions in one session fix the magnitudes only for that session.
 
-The data folder also holds a second run of the same kernel, `eval/runs/kout_shipped_v2/results.json`, started on 2026-09-27, which no results document describes. I recomputed it. Arm A healed 15 of 15 controls and 10 of 18 hard cases, arm B 15 of 15 and 12 of 18, and arm C 18 of 18, with a median of 45.75 s and a worst case of 58.5 s on arm C. The B and C heal counts repeat the first run, and arm A was 2 lower. The documents do not say what changed between the runs.
+The data folder also holds a second run of the same kernel, `eval/runs/kout_shipped_v2/results.json`, started on 2026-09-27, which no results document describes. We recomputed it. Arm A healed 15 of 15 controls and 10 of 18 hard cases, arm B 15 of 15 and 12 of 18, and arm C 18 of 18, with a median of 45.75 s and a worst case of 58.5 s on arm C. The B and C heal counts repeat the first run, and arm A was 2 lower. The documents do not say what changed between the runs.
 
 ### Multi-file healing
 
@@ -1067,7 +1065,7 @@ The data folder also holds a second run of the same kernel, `eval/runs/kout_ship
 
 (source: `docs/results/MODEL_BAKEOFF.md`)
 
-The heal counts, speeds and control results match the data exactly. The time column matches my recomputation from the raw calls (50.55 s, 14.4 s, 12.55 s and 32.35 s medians). The `summary` block inside the data file gives different values for three of the builds (56.5 s, 12.9 s and 34.7 s), and I did not find how that field is computed, so I used the raw calls.
+The heal counts, speeds and control results match the data exactly. The time column matches our recomputation from the raw calls (50.55 s, 14.4 s, 12.55 s and 32.35 s medians). The `summary` block inside the data file gives different values for three of the builds (56.5 s, 12.9 s and 34.7 s), and we did not find how that field is computed, so we used the raw calls.
 
 **Conclusion.** The baseline is kept. All four heal the same 7 of the 12 hard and multi-file cases on the first try and miss the same 5, so another build at this size cannot raise first-try accuracy. What differs is thinking: with thinking on, the baseline writes a median of 991 tokens and the "efficient thinking" builds 176 to 557, and the baseline heals more on retry. The Q4_K_M builds were also slower, and the document says the cause was not isolated. `signature_changed_caller_not` failed on every build and arm, 0 of 16 for the same pipeline reason as before. The document's caveats are 2 repetitions, so a one-heal gap is noise, challengers run at temperature 0.1 without tuning, and self-made cases on one demo repository.
 
@@ -1079,7 +1077,7 @@ The heal counts, speeds and control results match the data exactly. The time col
 
 **Baseline before the live rounds.** The first end-to-end measurement ran the shipped Code nodes under a harness that stood in for n8n itself, on a 13-node flow, with whole-file output and 12.1 tok/s. It healed 5 of 5 with a median of 104 s from push to pull request and a worst case of 116 s. The model phase was 56 to 60 s, about 55 percent of the time. Running the real workflow inside real n8n then found four bugs the harness could not (source: `docs/old/SELFHEAL_E2E_RESULTS.md`). The raw files of that run were not kept in the repository, so these numbers rest on the document. The current workflow has 26 nodes (source: `docs/architecture/n8n-workflow.md`).
 
-**Rounds.** The table gives the headline of each round. I checked the push-to-PR times and outcomes against the files in `eval/runs/golive1` to `golive5`. The per-node times and the model decode speeds come from n8n's database, which is not in the repository, so I could not recheck those.
+**Rounds.** The table gives the headline of each round. We checked the push-to-PR times and outcomes against the files in `eval/runs/golive1` to `golive5`. The per-node times and the model decode speeds come from n8n's database, which is not in the repository, so we could not recheck those.
 
 | Round | Date | Result | Push to PR or green (median) |
 |---|---|---|---|
@@ -1091,7 +1089,7 @@ The heal counts, speeds and control results match the data exactly. The time col
 
 (source: `docs/results/GOLIVE_RESULTS.md` for rounds 1 to 3 and 5; `eval/runs/golive4/golive4_retry_results.json` for round 4, which the results document mentions only in passing)
 
-**What the data shows that the document explains.** The stored file for round 1 marks all 7 rows as not healed: two rows ended with no pull request (the broken prompt-building node of the first runs) and three scored `file_is_golden: false`. The document says the runner stripped the file's trailing newline and so judged identical files as different, and that all pull requests were re-scored from their branches. I could confirm the two later rows (#13 and #14) as golden in the data and the 44 s median over the five pull requests, but the re-scoring of #10 to #12 is not in the stored file. The round 2 file has 5 of 5 golden, median 42 s, as the document says.
+**What the data shows that the document explains.** The stored file for round 1 has 7 rows and marks only 2 of them as healed (#13 and #14, both with the golden file). Two rows ended with no pull request (the broken prompt-building node of the first runs) and three (#10 to #12) scored `file_is_golden: false`. The document says the runner stripped the file's trailing newline and so judged identical files as different, and that all pull requests were re-scored from their branches. We could confirm the two later rows (#13 and #14) as golden in the data and the 44 s median over the five pull requests, but the re-scoring of #10 to #12 is not in the stored file. The round 2 file has 5 of 5 golden, median 42 s, as the document says.
 
 **Findings that changed the system.** Round 1 found that the model never saw the CI log, that a string split over ten lines broke the prompt node, and that a ladder size too large hung. Round 2 fixed those and found that GitHub's redirect would have sent the access token to the log host. Round 3 showed the retry loop works but that retry prompts anchor on a wrong first fix. Round 5 fixed the 120 s tunnel cut-off by streaming. A streamed request answered after 166.5 s, and the same unstreamed request failed with HTTP 524 at 125.9 s (checked in `eval/runs/golive5/golive5_stream_proof.json`).
 
@@ -1105,7 +1103,7 @@ The heal counts, speeds and control results match the data exactly. The time col
 
 **Method.** Both model roles were pointed at the endpoint (kernel v15) and the backend's six fixture failures were replayed through its real pipeline, with GitHub mocked and `DRY_RUN` on (source: `docs/results/BACKEND_ON_KAGGLE.md`). The document states no decision rule.
 
-**Numbers.** (The replay output is in `kaggle/logs/endpoint/qwen3-8-27b-live-endpoint/2026-11-15_v15/backend_replay.log`; I checked the first fixture there and the rest are from the document.)
+**Numbers.** (The replay output is in `kaggle/logs/endpoint/qwen3-8-27b-live-endpoint/2026-11-15_v15/backend_replay.log`; we checked the first fixture there and the rest are from the document.)
 
 | Fixture | Expected class | Classified, with confidence | Decision | Time |
 |---|---|---|---|---|
@@ -1122,7 +1120,7 @@ The heal counts, speeds and control results match the data exactly. The time col
 
 ### Limits of the evaluation
 
-The table lists only limits that the project documents themselves state or that I found in the saved data.
+The table lists only limits that the project documents themselves state or that we found in the saved data.
 
 | Limit | Evidence | Source |
 |---|---|---|
@@ -1141,7 +1139,7 @@ The table lists only limits that the project documents themselves state or that 
 | Some raw data is not in the repository | Sweep results, the first end-to-end files, the speed-levers scripts and n8n's execution database | `docs/old/SELFHEAL_E2E_RESULTS.md`, `docs/old/QWEN38_SPEED_CEILING.md`, `docs/results/SPEED_LEVERS_EVAL.md` |
 | Speed-levers correctness cannot be re-scored | The run saved no raw output | `docs/results/SPEED_LEVERS_EVAL.md` |
 | Backend replay stops at the decision | One run per fixture, six fixtures, no pull request and no CI | `docs/results/BACKEND_ON_KAGGLE.md` |
-| Documents differ from the data in places | Diff source length 1862 against 1839; bake-off time summary against raw calls; a second shipped-quality run not described; round 1 stored as 0 of 7 healed before re-scoring | `eval/runs/kout_diff/results.json`, `eval/runs/kout_bakeoff/results.json`, `eval/runs/kout_shipped_v2/results.json`, `eval/runs/golive1/golive_results.json` |
+| Documents differ from the data in places | Bake-off time summary against raw calls; a second shipped-quality run not described; round 1 stored as 2 of 7 healed before re-scoring | `eval/runs/kout_diff/results.json`, `eval/runs/kout_bakeoff/results.json`, `eval/runs/kout_shipped_v2/results.json`, `eval/runs/golive1/golive_results.json` |
 
 ## A recorded live run
 
@@ -1204,7 +1202,7 @@ The project has four layers of checks, from fast and local to slow and live. The
 | test_multifile_eval | 13 | scoring of the multi-file study |
 | test_bakeoff_eval | 52 | the bake-off kernel's functions and decision rule |
 
-The generator check regenerates `n8n/self_healing_pipeline.json` from `tools/gen_n8n.py` and the node files and requires a byte-identical result, so the file in the repository cannot drift from its source. In the last full run all 13 checks passed (12 without the rig, 13 with it).
+The generator check regenerates `n8n/self_healing_pipeline.json` from `tools/gen_n8n.py` and the node files and requires a byte-identical result, so the file in the repository cannot drift from its source. In the last full run every check passed: 12 without the rig and 13 with it.
 
 The harness has a known blind spot, stated in its own docstring: it resolves `$('Node')` lookups that n8n's sandbox does not resolve for Code nodes. A passing harness run therefore does not prove that an accessor works in n8n. This is the reason for layer 3.
 

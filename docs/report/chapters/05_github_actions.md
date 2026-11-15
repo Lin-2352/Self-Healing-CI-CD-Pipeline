@@ -156,7 +156,7 @@ The application is small on purpose. It stands in for a real project, and the pi
 
 The four API checks are `/health` returning `{"status":"ok"}`, `/greet/Ada` returning `Hello, Ada!`, `/sum?a=2&b=3` returning a sum of 5, and `/sum?a=x&b=3` returning status 400 with an error message (source: demo-app/test/api.test.js).
 
-Both tests follow the same exit-code contract. A wrong status or body prints a line starting with `CODE_FAILURE` and exits with 1. If the server cannot start, the `error` event on the server prints a line starting with `INFRA_FAILURE` and exits with 75. For the smoke test, a failed `listen` such as `EADDRINUSE` goes to the infrastructure path, while a server that listens but does not answer itself counts as a code failure (source: demo-app/test.js, comments). I ran `npm test` with port 5000 already occupied and got exit code 75, which is the value the workflow turns into `infra`.
+Both tests follow the same exit-code contract. A wrong status or body prints a line starting with `CODE_FAILURE` and exits with 1. If the server cannot start, the `error` event on the server prints a line starting with `INFRA_FAILURE` and exits with 75. For the smoke test, a failed `listen` such as `EADDRINUSE` goes to the infrastructure path, while a server that listens but does not answer itself counts as a code failure (source: demo-app/test.js, comments). We ran `npm test` with port 5000 already occupied and got exit code 75, which is the value the workflow turns into `infra`.
 
 Because the script joins the two tests with `&&`, a failing smoke test stops the run and the API test never starts. The exit code of the whole `npm test` is the one from the failing command.
 

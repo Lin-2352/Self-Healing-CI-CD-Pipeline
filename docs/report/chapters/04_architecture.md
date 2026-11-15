@@ -93,7 +93,7 @@ The webhook body has these fields (source: .github/workflows/demo-ci.yml, step "
 | `attempt` | `0` on a push, the `Heal-Attempt` number on a fix PR | Turns thinking on; numbers the next commit |
 | `pr_number` | The PR number on a pull request event | Where a failure comment is posted |
 
-All values are sent as strings inside the JSON. On a push event the expression for `pr_number` has nothing to read, so it should arrive empty. That is my inference from the expression, not something I observed. `tools/nodes/explain_failure.js` treats anything that is not all digits as "no PR".
+All values are sent as strings inside the JSON. On a push event the expression for `pr_number` has nothing to read, so it should arrive empty. This is inferred from the expression; we did not observe it. `tools/nodes/explain_failure.js` treats anything that is not all digits as "no PR".
 
 ### Trust boundaries and secrets
 
@@ -130,7 +130,7 @@ The n8n workflow and ci-heal-backend are two separate healers, and a repository 
 
 They also decide differently. The n8n workflow acts only on failures the CI job marked as `code`, and then always tries a fix. The backend classifies the failure first and then reruns a flaky job, opens a fix PR or opens an issue, depending on its confidence (source: ci-heal-backend/README.md). Their attempt counters are separate too: n8n uses the `Heal-Attempt` trailer, while the backend counts fix decisions in its own database (source: ci-heal-backend/README.md, Architecture). Neither counter knows about the other.
 
-The backend has an endpoint `POST /webhooks/n8n` for failures forwarded from n8n (source: ci-heal-backend/README.md). I found no node in the shipped workflow that calls it, so that route is not part of the n8n healer described in this report.
+The backend has an endpoint `POST /webhooks/n8n` for failures forwarded from n8n (source: ci-heal-backend/README.md). We found no node in the shipped workflow that calls it, so that route is not part of the n8n healer described in this report.
 
 ### Design decisions
 
@@ -160,7 +160,7 @@ The price is that a hard bug needs one more CI cycle. In the live retry rounds, 
 
 #### The failure_kind gate
 
-An infrastructure problem, such as a port that is already in use, has nothing to fix in the source. If the model were asked anyway, it would invent a patch. The demo tests therefore exit with 75 for environment problems and with 1 for code failures, and the workflow maps these to `infra` and `code` (source: demo-app/test.js, header comment). I checked on this machine that `npm test` exits with 75 when port 5000 is already taken. The gate exists twice: the notify job runs only for `code`, and `Build AI Prompt` throws `Refusing to run` for any other non-empty `failure_kind`, because the webhook is a public address that anyone could post to (source: tools/nodes/build_ai_prompt.js).
+An infrastructure problem, such as a port that is already in use, has nothing to fix in the source. If the model were asked anyway, it would invent a patch. The demo tests therefore exit with 75 for environment problems and with 1 for code failures, and the workflow maps these to `infra` and `code` (source: demo-app/test.js, header comment). We checked that `npm test` exits with 75 when port 5000 is already taken. The gate exists twice: the notify job runs only for `code`, and `Build AI Prompt` throws `Refusing to run` for any other non-empty `failure_kind`, because the webhook is a public address that anyone could post to (source: tools/nodes/build_ai_prompt.js).
 
 #### Log redirect handling
 

@@ -22,7 +22,7 @@ The build in production is a stock llama.cpp build, which `docs/results/GOLIVE_R
 
 ### Model file and quantization
 
-The model is `Qwen3.8-27B-UD-Q4_K_XL.gguf` from the Hugging Face repository `unsloth/Qwen3.8-27B-GGUF`, 17.6 GB (source: `kaggle/endpoint/models.json`). GGUF is the single-file format llama.cpp reads: it holds the weights, the tokenizer and the chat template together. A name like Q4_K_XL says how the weights were compressed: roughly 4-bit blocks of the "K" kind, with the "XL" mix keeping some tensors at higher precision, and the "UD" prefix marks Unsloth's dynamic variant (this reading of the name is general knowledge about the format, not something the project measured). For scale, 17.6 GB over about 27 billion weights is around 5 bits per weight on average (my arithmetic from those two figures).
+The model is `Qwen3.8-27B-UD-Q4_K_XL.gguf` from the Hugging Face repository `unsloth/Qwen3.8-27B-GGUF`, 17.6 GB (source: `kaggle/endpoint/models.json`). GGUF is the single-file format llama.cpp reads: it holds the weights, the tokenizer and the chat template together. A name like Q4_K_XL says how the weights were compressed: roughly 4-bit blocks of the "K" kind, with the "XL" mix keeping some tensors at higher precision, and the "UD" prefix marks Unsloth's dynamic variant (this reading of the name is general knowledge about the format, not something the project measured). For scale, 17.6 GB over about 27 billion weights is around 5 bits per weight on average (our arithmetic from those two figures).
 
 `fetch()` in the script lists the `.gguf` files in the repository, skips anything with `mmproj` in its name, and downloads the first file that matches the registry pattern. If that fails it tries `UD-Q4_K_M` and then `UD-Q6_K` from the same repository. Downloads took 65 s (v8), 363 s (v9), 92 s (v10), 84 s (v11), 91 s (v12), 89 s and 76 s (the two attempts logged under v14), and 82 s (v16) (source: boot logs of those runs). Only v9 was slow, and the logs do not say why.
 
@@ -78,8 +78,6 @@ If either lever is missing the script prints a warning that the endpoint will be
 
 `thinking_check()` then asks "What is 17 * 23?" twice, once plain and once with thinking requested. A reply counts as thinking if it has `reasoning_content` or a `<think>` block. The expected result is false then true. Boot logs v14, v15 and v16 all show `thinking by default : False` and `thinking when asked : True` with the answer 391 both times (source: `stream.log` of v14 and v15, `boot.log` of v16). The older runs v8 to v12 predate this check.
 
-In the saved files v12 has no thinking-check lines and v14, v15 and v16 do.
-
 The boot benchmark of each session that reached the end was this (source: the `SELECTED` lines of the boot logs).
 
 | Session | Date | Average tok/s | Best tok/s | MTP accept rate |
@@ -119,7 +117,7 @@ The one-click start file `launcher/start/1_start_model_on_kaggle.bat` runs the s
 
 ### Quota and stopping
 
-A Kaggle quota dialog read on 2026-09-07 showed 30 hours of GPU per week (source: `docs/research/KAGGLE_ENV_MEASURED.md`). The figure is from one dialog on one day, and Kaggle may change it. At 1.5 hours per window and ignoring boot time, 30 hours is at most 20 windows a week (my arithmetic).
+A Kaggle quota dialog read on 2026-09-07 showed 30 hours of GPU per week (source: `docs/research/KAGGLE_ENV_MEASURED.md`). The figure is from one dialog on one day, and Kaggle may change it. At 1.5 hours per window and ignoring boot time, 30 hours is at most 20 windows a week (our arithmetic).
 
 A push does not replace a running kernel. Kaggle starts a second session, which would use quota twice, so `push.py` refuses to push while any of the four project kernels is `RUNNING` or `QUEUED` unless `--force` is given. The Kaggle README adds that GPU kernels can wait in the queue for hours (source: `kaggle/README.md`).
 
@@ -143,8 +141,8 @@ Speed was measured in four settings, and the figures do not belong in one column
 | Live decode, round 2 | 27.73 | `docs/results/GOLIVE_RESULTS.md` |
 | Bake-off baseline, ctx 131072 | 23.4 | `docs/results/MODEL_BAKEOFF.md` |
 
-I recomputed rigs A to D from `eval/runs/kout_speed/results.json`: 60 calls, no errors, and the same medians. In rig D the MTP head accepted drafts at a median rate of 0.96, and the per-card memory was 9051 MiB on each card, against uneven pairs such as 7761 and 9371 MiB in rig A (source: the same file). The tensor-split gain is smaller than the +47 to +68 percent reported for Ampere machines. The study traces this to PCIe: the two T4 cards have no NVLink, and it estimates the cost of combining results at about 24 ms per token (source: `docs/results/SPEED_LEVERS_EVAL.md`).
+We recomputed rigs A to D from `eval/runs/kout_speed/results.json`: 60 calls, no errors, and the same medians. In rig D the MTP head accepted drafts at a median rate of 0.96, and the per-card memory was 9051 MiB on each card, against uneven pairs such as 7761 and 9371 MiB in rig A (source: the same file). The tensor-split gain is smaller than the +47 to +68 percent reported for Ampere machines. The study traces this to PCIe: the two T4 cards have no NVLink, and it estimates the cost of combining results at about 24 ms per token (source: `docs/results/SPEED_LEVERS_EVAL.md`).
 
 The live figures are lower than the rig because the inputs differ. Round 1 had an MTP accept rate of about 0.89 against 0.965 in the rig, since a search-and-replace answer is less predictable than a whole file that mostly copies the input (source: `docs/results/GOLIVE_RESULTS.md`). The same document ran with a context of 131072 against 8192 in the rig. Round 2 decoded faster at the same settings, and the document says the reason is not proven.
 
-Prompt reading ran at 274 to 323 tok/s in round 1, which is about 2.2 s for a prompt of roughly 700 tokens. A model call through the tunnel carried 5 to 6 s of fixed overhead on top of generation (source: `docs/results/GOLIVE_RESULTS.md`). The study that set `--spec-draft-n-max` named values 3 and 4 as the next thing to test, and I found no result for them in the documents, so 2 is the value in use but not a tuned one.
+Prompt reading ran at 274 to 323 tok/s in round 1, which is about 2.2 s for a prompt of roughly 700 tokens. A model call through the tunnel carried 5 to 6 s of fixed overhead on top of generation (source: `docs/results/GOLIVE_RESULTS.md`). The study that set `--spec-draft-n-max` named values 3 and 4 as the next thing to test, and we found no result for them in the documents, so 2 is the value in use but not a tuned one.

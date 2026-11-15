@@ -4,13 +4,13 @@
 
 The project ran nine studies, each on the Kaggle machine or against the live pipeline. This chapter gives them in the order they answer questions about the healer: first which model file to load, then how to make it fast, then what output format to ask for, then how often the fix is right, and last how the whole pipeline behaves live. Each section states the question, the method, the decision rule when the results document names one, the headline numbers and the conclusion.
 
-Every number comes from a results document in `docs/results/` or `docs/old/`, with the file named after it in brackets. Where saved data exists under `eval/runs/`, I recomputed the headline numbers from it. A section says so when the data confirmed the document, and says so when it did not or when the data was not kept. Disagreements between documents are named where they occur and collected in the last table.
+Every number comes from a results document in `docs/results/` or `docs/old/`, with the file named after it in brackets. Where saved data exists under `eval/runs/`, we recomputed the headline numbers from it. A section says so when the data confirmed the document, and says so when it did not or when the data was not kept. Disagreements between documents are named where they occur and collected in the last table.
 
 ### The evaluation harness
 
 The `eval/` folder holds the test cases, the scorers, the scripts that build Kaggle kernels from them, and the saved results in `eval/runs/`.
 
-**Cases.** There are 5 control cases (`eval/cases/eval_cases.json`), 6 hard single-file cases (`eval/cases/hard_cases.json`) and 6 multi-file cases (`eval/cases/multifile_cases.json`). The control cases are the five breakages the live runner pushes to the demo repository: a missing `app` line, a misspelled method, a missing `require`, a missing closing brace and a wrong status check. The hard cases come from the same file, but the CI log no longer points at the bug. The multi-file cases use the demo app's `src/app.js`, `src/format.js` and `test/api.test.js` (source: `docs/results/SHIPPED_QUALITY_EVAL.md`, `docs/results/MULTIFILE_EVAL.md`). I counted the cases in the three JSON files.
+**Cases.** There are 5 control cases (`eval/cases/eval_cases.json`), 6 hard single-file cases (`eval/cases/hard_cases.json`) and 6 multi-file cases (`eval/cases/multifile_cases.json`). The control cases are the five breakages the live runner pushes to the demo repository: a missing `app` line, a misspelled method, a missing `require`, a missing closing brace and a wrong status check. The hard cases come from the same file, but the CI log no longer points at the bug. The multi-file cases use the demo app's `src/app.js`, `src/format.js` and `test/api.test.js` (source: `docs/results/SHIPPED_QUALITY_EVAL.md`, `docs/results/MULTIFILE_EVAL.md`). We counted the cases in the three JSON files.
 
 **Same code as production.** The later studies do not paraphrase the pipeline. They run the real node code from `tools/nodes/` (`build_ai_prompt.js`, `extract_ai_response.js`, and for multi-file cases `Pick Candidate Files`) under `node`, send the request body unchanged to the model, and apply the reply with the real extraction node, so its exactly-once and syntax gates count (source: `docs/results/SHIPPED_QUALITY_EVAL.md`, `docs/results/MODEL_BAKEOFF.md`).
 
@@ -20,7 +20,7 @@ The `eval/` folder holds the test cases, the scorers, the scripts that build Kag
 
 **Scorer self-tests.** Each scorer is tested locally before it is trusted. `eval/test_shipped_eval.py`, `eval/test_bakeoff_eval.py`, `eval/test_multifile_eval.py` and `eval/check_multifile_cases.py` feed known-good and known-bad outputs through it, and the saved outputs in `eval/runs/testall/` report `FAILURES: 0` for each. The shipped-quality test includes 15 real captured model replies, all of which score as functional heals. The self-test of the speed-levers study is a warning: it passed every assertion while the check it protected gave a false answer, because its fixture came from a dump of the binary and not from a real log (source: `docs/results/SPEED_LEVERS_EVAL.md`). After that the engagement tests ran against the four captured server logs.
 
-**Re-scoring.** Every result file stores the raw model reply and a flag that says whether it was cut short. `eval/rescore_shipped.py`, `eval/rescore_multifile.py` and `eval/rescore_bakeoff.py` recompute every verdict from the raw text alone, with the same node code and a local express. I ran all three. The shipped-quality file re-scored 84 of 84 calls with no disagreement, the multi-file file 57 of 57, and the bake-off file 232 of 232, and the bake-off run also reproduced its decision (source: output of the three scripts, run for this chapter; the same counts are in `docs/results/SHIPPED_QUALITY_EVAL.md`, `MULTIFILE_EVAL.md` and `MODEL_BAKEOFF.md`). The speed-levers run did not save raw output, so its correctness column cannot be re-scored.
+**Re-scoring.** Every result file stores the raw model reply and a flag that says whether it was cut short. `eval/rescore_shipped.py`, `eval/rescore_multifile.py` and `eval/rescore_bakeoff.py` recompute every verdict from the raw text alone, with the same node code and a local express. We ran all three. The shipped-quality file re-scored 84 of 84 calls with no disagreement, the multi-file file 57 of 57, and the bake-off file 232 of 232, and the bake-off run also reproduced its decision (source: output of the three scripts, run for this chapter; the same counts are in `docs/results/SHIPPED_QUALITY_EVAL.md`, `MULTIFILE_EVAL.md` and `MODEL_BAKEOFF.md`). The speed-levers run did not save raw output, so its correctness column cannot be re-scored.
 
 **Rig corrections.** Two studies each found that a check on log wording gave a false negative, and one found a recount option that hid a bad patch. The project's rule since then is to judge a feature by its measured effect, such as the accept rate or equal memory on both cards, and not by a log string (source: `docs/results/SPEED_LEVERS_EVAL.md`, `docs/results/SPEED_QUALITY_EVAL.md`, `docs/results/DIFF_FORMAT_EVAL.md`).
 
@@ -30,7 +30,7 @@ The `eval/` folder holds the test cases, the scorers, the scripts that build Kag
 
 **Method.** One kernel ran 9 configurations in a batch of 252 minutes on two T4 cards. Quality was a 5-case CI-failure set scored 3 points per case (valid JSON, `node --check`, correct fix). Speed came from the server's own `timings` field (source: `docs/old/QWEN38_SWEEP_RESULTS.md`). The document names no decision rule in advance. A second note covers three sweeps, 24 configurations in all (source: `docs/old/QWEN38_SPEED_CEILING.md`).
 
-**Numbers.** The raw `results.json` of these sweeps was not kept in the repository, so I could not recompute them and the figures below rest on the documents alone.
+**Numbers.** The raw `results.json` of these sweeps was not kept in the repository, so we could not recompute them and the figures below rest on the documents alone.
 
 | Config | Size (GB) | Quality | Generation tok/s |
 |---|---|---|---|
@@ -51,7 +51,7 @@ Two later results weaken parts of this study. The 8.8 tok/s figure turned out to
 
 **Method.** Four configurations (A baseline, B tensor split, C MTP, D both) on 5 scenarios with 3 repetitions each, 60 calls, temperature 0.1, context 8192, with the same production file (source: `docs/results/SPEED_LEVERS_EVAL.md`). The document names no decision rule in advance, and states the verdict afterwards: ship both.
 
-**Numbers.** I recomputed the medians from the 60 saved calls, which had no errors (checked in `eval/runs/kout_speed/results.json`).
+**Numbers.** We recomputed the medians from the 60 saved calls, which had no errors (checked in `eval/runs/kout_speed/results.json`).
 
 | Config | Median tok/s | Gain over A | Median wall time | Correct fixes | Draft accept rate |
 |---|---|---|---|---|---|
@@ -105,7 +105,7 @@ The Bonsai speeds are not like for like, since those files fell back to layer sp
 
 (source: `docs/results/DIFF_FORMAT_EVAL.md`)
 
-**Conclusion.** Search and replace ships: the same correctness as whole file with 3.8 times fewer generated tokens and 39 seconds saved per heal. Unified diff does not ship. All three failures were the missing-brace scenario, where the patch added only an empty line. A strict `git apply` rejected it, a `--recount` retry then accepted it, and the fix pattern matched a different `});` elsewhere in the file, so the apply and fix columns read 15/15 although 3 files did not parse. The stored summary in the data file still shows 1.0 for both columns for that reason. Only the syntax check caught it. The document projects a cycle of about 65 s and says this was not measured, and that the fallback rate on a larger file was unknown. One small mismatch: the document gives the source file as 1862 characters, while the data file records 1839 (`source_chars`); I did not find which is right, and neither changes a result.
+**Conclusion.** Search and replace ships: the same correctness as whole file with 3.8 times fewer generated tokens and 39 seconds saved per heal. Unified diff does not ship. All three failures were the missing-brace scenario, where the patch added only an empty line. A strict `git apply` rejected it, a `--recount` retry then accepted it, and the fix pattern matched a different `});` elsewhere in the file, so the apply and fix columns read 15/15 although 3 files did not parse. The stored summary in the data file still shows 1.0 for both columns for that reason. Only the syntax check caught it. The document projects a cycle of about 65 s and says this was not measured, and that the fallback rate on a larger file was unknown. The two source lengths that appear do not conflict: the document's 1862 characters is the length of the known-good `test.js` (1862 bytes), and the data file's `source_chars` of 1839 is the length of the broken file the model was shown, which is 23 characters shorter.
 
 ### Shipped-format quality, with and without the CI log and thinking
 
@@ -127,9 +127,9 @@ The Bonsai speeds are not like for like, since those files fell back to layer sp
 
 The hard-case times and the byte-exact counts matched the data. The accept rates match the medians over all calls of each arm, and the data gave 0.894 and 0.878 for the hard calls alone, so the table is slightly mixed in what it averages. Case by case, `callback_arity` and `multi_hunk` were 0 of 3 in arms A and B and 3 of 3 in arm C, and nothing else changed.
 
-**Conclusion.** The log did not change the heal rate (12 to 12, short of the 3 needed), but it moved fixes closer to the golden file (6 to 9 byte-exact), costs about 3 seconds and stays in the prompt. Thinking passes its rule (+6 of 18) and is the only setting that ever fixed those two cases, at about four times the time: a median of 36.8 s and a worst case of 77.9 s. That led to the shipped policy of thinking on retries only. The document's caveats are that arm C saw the original broken file, not a file with a wrong first fix, so it does not measure retries, and that 3 repetitions in one session fix the magnitudes only for that session.
+**Conclusion.** The log did not change the heal rate (12 to 12, short of the 3 needed), but it moved fixes closer to the golden file (6 to 9 byte-exact), costs about 3 seconds of extra log-fetch time in the workflow (the model call itself took 9.1 s against 9.2 s) and stays in the prompt. Thinking passes its rule (+6 of 18) and is the only setting that ever fixed those two cases, at about four times the time: a median of 36.8 s and a worst case of 77.9 s. That led to the shipped policy of thinking on retries only. The document's caveats are that arm C saw the original broken file, not a file with a wrong first fix, so it does not measure retries, and that 3 repetitions in one session fix the magnitudes only for that session.
 
-The data folder also holds a second run of the same kernel, `eval/runs/kout_shipped_v2/results.json`, started on 2026-09-27, which no results document describes. I recomputed it. Arm A healed 15 of 15 controls and 10 of 18 hard cases, arm B 15 of 15 and 12 of 18, and arm C 18 of 18, with a median of 45.75 s and a worst case of 58.5 s on arm C. The B and C heal counts repeat the first run, and arm A was 2 lower. The documents do not say what changed between the runs.
+The data folder also holds a second run of the same kernel, `eval/runs/kout_shipped_v2/results.json`, started on 2026-09-27, which no results document describes. We recomputed it. Arm A healed 15 of 15 controls and 10 of 18 hard cases, arm B 15 of 15 and 12 of 18, and arm C 18 of 18, with a median of 45.75 s and a worst case of 58.5 s on arm C. The B and C heal counts repeat the first run, and arm A was 2 lower. The documents do not say what changed between the runs.
 
 ### Multi-file healing
 
@@ -171,7 +171,7 @@ The data folder also holds a second run of the same kernel, `eval/runs/kout_ship
 
 (source: `docs/results/MODEL_BAKEOFF.md`)
 
-The heal counts, speeds and control results match the data exactly. The time column matches my recomputation from the raw calls (50.55 s, 14.4 s, 12.55 s and 32.35 s medians). The `summary` block inside the data file gives different values for three of the builds (56.5 s, 12.9 s and 34.7 s), and I did not find how that field is computed, so I used the raw calls.
+The heal counts, speeds and control results match the data exactly. The time column matches our recomputation from the raw calls (50.55 s, 14.4 s, 12.55 s and 32.35 s medians). The `summary` block inside the data file gives different values for three of the builds (56.5 s, 12.9 s and 34.7 s), and we did not find how that field is computed, so we used the raw calls.
 
 **Conclusion.** The baseline is kept. All four heal the same 7 of the 12 hard and multi-file cases on the first try and miss the same 5, so another build at this size cannot raise first-try accuracy. What differs is thinking: with thinking on, the baseline writes a median of 991 tokens and the "efficient thinking" builds 176 to 557, and the baseline heals more on retry. The Q4_K_M builds were also slower, and the document says the cause was not isolated. `signature_changed_caller_not` failed on every build and arm, 0 of 16 for the same pipeline reason as before. The document's caveats are 2 repetitions, so a one-heal gap is noise, challengers run at temperature 0.1 without tuning, and self-made cases on one demo repository.
 
@@ -183,7 +183,7 @@ The heal counts, speeds and control results match the data exactly. The time col
 
 **Baseline before the live rounds.** The first end-to-end measurement ran the shipped Code nodes under a harness that stood in for n8n itself, on a 13-node flow, with whole-file output and 12.1 tok/s. It healed 5 of 5 with a median of 104 s from push to pull request and a worst case of 116 s. The model phase was 56 to 60 s, about 55 percent of the time. Running the real workflow inside real n8n then found four bugs the harness could not (source: `docs/old/SELFHEAL_E2E_RESULTS.md`). The raw files of that run were not kept in the repository, so these numbers rest on the document. The current workflow has 26 nodes (source: `docs/architecture/n8n-workflow.md`).
 
-**Rounds.** The table gives the headline of each round. I checked the push-to-PR times and outcomes against the files in `eval/runs/golive1` to `golive5`. The per-node times and the model decode speeds come from n8n's database, which is not in the repository, so I could not recheck those.
+**Rounds.** The table gives the headline of each round. We checked the push-to-PR times and outcomes against the files in `eval/runs/golive1` to `golive5`. The per-node times and the model decode speeds come from n8n's database, which is not in the repository, so we could not recheck those.
 
 | Round | Date | Result | Push to PR or green (median) |
 |---|---|---|---|
@@ -195,7 +195,7 @@ The heal counts, speeds and control results match the data exactly. The time col
 
 (source: `docs/results/GOLIVE_RESULTS.md` for rounds 1 to 3 and 5; `eval/runs/golive4/golive4_retry_results.json` for round 4, which the results document mentions only in passing)
 
-**What the data shows that the document explains.** The stored file for round 1 marks all 7 rows as not healed: two rows ended with no pull request (the broken prompt-building node of the first runs) and three scored `file_is_golden: false`. The document says the runner stripped the file's trailing newline and so judged identical files as different, and that all pull requests were re-scored from their branches. I could confirm the two later rows (#13 and #14) as golden in the data and the 44 s median over the five pull requests, but the re-scoring of #10 to #12 is not in the stored file. The round 2 file has 5 of 5 golden, median 42 s, as the document says.
+**What the data shows that the document explains.** The stored file for round 1 has 7 rows and marks only 2 of them as healed (#13 and #14, both with the golden file). Two rows ended with no pull request (the broken prompt-building node of the first runs) and three (#10 to #12) scored `file_is_golden: false`. The document says the runner stripped the file's trailing newline and so judged identical files as different, and that all pull requests were re-scored from their branches. We could confirm the two later rows (#13 and #14) as golden in the data and the 44 s median over the five pull requests, but the re-scoring of #10 to #12 is not in the stored file. The round 2 file has 5 of 5 golden, median 42 s, as the document says.
 
 **Findings that changed the system.** Round 1 found that the model never saw the CI log, that a string split over ten lines broke the prompt node, and that a ladder size too large hung. Round 2 fixed those and found that GitHub's redirect would have sent the access token to the log host. Round 3 showed the retry loop works but that retry prompts anchor on a wrong first fix. Round 5 fixed the 120 s tunnel cut-off by streaming. A streamed request answered after 166.5 s, and the same unstreamed request failed with HTTP 524 at 125.9 s (checked in `eval/runs/golive5/golive5_stream_proof.json`).
 
@@ -209,7 +209,7 @@ The heal counts, speeds and control results match the data exactly. The time col
 
 **Method.** Both model roles were pointed at the endpoint (kernel v15) and the backend's six fixture failures were replayed through its real pipeline, with GitHub mocked and `DRY_RUN` on (source: `docs/results/BACKEND_ON_KAGGLE.md`). The document states no decision rule.
 
-**Numbers.** (The replay output is in `kaggle/logs/endpoint/qwen3-8-27b-live-endpoint/2026-11-15_v15/backend_replay.log`; I checked the first fixture there and the rest are from the document.)
+**Numbers.** (The replay output is in `kaggle/logs/endpoint/qwen3-8-27b-live-endpoint/2026-11-15_v15/backend_replay.log`; we checked the first fixture there and the rest are from the document.)
 
 | Fixture | Expected class | Classified, with confidence | Decision | Time |
 |---|---|---|---|---|
@@ -226,7 +226,7 @@ The heal counts, speeds and control results match the data exactly. The time col
 
 ### Limits of the evaluation
 
-The table lists only limits that the project documents themselves state or that I found in the saved data.
+The table lists only limits that the project documents themselves state or that we found in the saved data.
 
 | Limit | Evidence | Source |
 |---|---|---|
@@ -245,4 +245,4 @@ The table lists only limits that the project documents themselves state or that 
 | Some raw data is not in the repository | Sweep results, the first end-to-end files, the speed-levers scripts and n8n's execution database | `docs/old/SELFHEAL_E2E_RESULTS.md`, `docs/old/QWEN38_SPEED_CEILING.md`, `docs/results/SPEED_LEVERS_EVAL.md` |
 | Speed-levers correctness cannot be re-scored | The run saved no raw output | `docs/results/SPEED_LEVERS_EVAL.md` |
 | Backend replay stops at the decision | One run per fixture, six fixtures, no pull request and no CI | `docs/results/BACKEND_ON_KAGGLE.md` |
-| Documents differ from the data in places | Diff source length 1862 against 1839; bake-off time summary against raw calls; a second shipped-quality run not described; round 1 stored as 0 of 7 healed before re-scoring | `eval/runs/kout_diff/results.json`, `eval/runs/kout_bakeoff/results.json`, `eval/runs/kout_shipped_v2/results.json`, `eval/runs/golive1/golive_results.json` |
+| Documents differ from the data in places | Bake-off time summary against raw calls; a second shipped-quality run not described; round 1 stored as 2 of 7 healed before re-scoring | `eval/runs/kout_diff/results.json`, `eval/runs/kout_bakeoff/results.json`, `eval/runs/kout_shipped_v2/results.json`, `eval/runs/golive1/golive_results.json` |

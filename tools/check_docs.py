@@ -23,7 +23,7 @@ FILES = (glob.glob(os.path.join(ROOT, "docs", "**", "*.md"), recursive=True)
             os.path.join(ROOT, "kaggle", "README.md"), os.path.join(ROOT, "ci-heal-backend", "README.md"),
             os.path.join(ROOT, "tools", "n8n_rig", "README.md")]
          + glob.glob(os.path.join(ROOT, "ci-heal-backend", "docs", "*.md")))
-SKIP_DIRS = (os.path.join(ROOT, "docs", "old"),)
+SKIP_DIRS = (os.path.join(ROOT, "docs", "old"), os.path.join(ROOT, "docs", "report-kiit"))
 EXT = r"(?:py|md|js|json|yml|yaml|bat|txt|toml|ipynb|html|sh|jsonl|log|png|jpg|mp4|pdf|tex|env|example|cfg)"
 PATH_RE = re.compile(r"^[A-Za-z0-9_.\-]+(?:/[A-Za-z0-9_.\-]+)*(?:/|\.%s)$" % EXT)
 STYLE = [(re.compile("—"), "em dash"),
