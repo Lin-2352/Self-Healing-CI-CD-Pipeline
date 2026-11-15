@@ -1,4 +1,5 @@
 // Small formatting helpers used by the API routes in src/app.js.
+// (fallback test: this commit keeps the greeting bug so CI stays red)
 
 function formatGreeting(name) {
   return `Hello, ${clean}!`;
