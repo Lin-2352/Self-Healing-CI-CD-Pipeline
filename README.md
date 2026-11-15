@@ -44,6 +44,9 @@ On Windows, `launcher/` has double-click scripts for every step below, with the 
    is the default, so nothing is written to GitHub until you change it.
 3. Or run the n8n healer instead: `docs/guides/SETUP.md`.
 
+The documentation starts at [`docs/README.md`](docs/README.md): the project report ([`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md)),
+setup and testing guides, the architecture notes, the backend walkthrough, every measurement and a captioned demo video.
+
 Tests that need no GPU:
 
 ```

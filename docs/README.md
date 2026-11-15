@@ -4,8 +4,7 @@ Start with the project report if you want the whole story, or pick the folder fo
 
 | I want to | read |
 |---|---|
-| understand the project from start to end | [PROJECT_REPORT.md](PROJECT_REPORT.md) (also as [PROJECT_REPORT.pdf](PROJECT_REPORT.pdf)) |
-| read the report in the KIIT layout (LaTeX, with placeholders for names) | [report-kiit/PROJECT_REPORT_KIIT.pdf](report-kiit/PROJECT_REPORT_KIIT.pdf) and [report-kiit/README.md](report-kiit/README.md) |
+| understand the project from start to end | [PROJECT_REPORT.md](PROJECT_REPORT.md), assembled from the chapters in [report/chapters/](report/chapters/) |
 | see a heal happen | the captioned video [media/demo.mp4](media/demo.mp4) and the screenshots in [media/shots/](media/shots/) |
 | set the system up | [guides/SETUP.md](guides/SETUP.md), then [guides/cloud-n8n.md](guides/cloud-n8n.md) if n8n runs in the cloud |
 | start and stop the parts | [guides/launcher.md](guides/launcher.md) and `../launcher/README.md` |

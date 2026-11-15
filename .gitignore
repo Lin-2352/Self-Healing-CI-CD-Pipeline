@@ -29,3 +29,8 @@ tools/n8n_rig/contents_hits.json
 # LaTeX build output of the project report (main.tex and the PDF are kept)
 docs/report/build/
 docs/report/build.log
+
+# The KIIT-format report (LaTeX, PDF, screenshots) is kept locally and is not tracked; one PDF only
+docs/report-kiit/
+docs/PROJECT_REPORT.pdf
+*.pdf

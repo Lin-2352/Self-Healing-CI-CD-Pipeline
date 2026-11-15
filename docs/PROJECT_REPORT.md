@@ -1408,7 +1408,7 @@ The items below follow from the limits in Chapter 14, in the order we would do t
 
 | path | contents |
 |---|---|
-| `docs/PROJECT_REPORT.md`, `PROJECT_REPORT.pdf` | this report, assembled from `docs/report/chapters/` |
+| `docs/PROJECT_REPORT.md` | this report, assembled from `docs/report/chapters/` (the PDF is built locally with `docs/report/build.py` and is not tracked) |
 | `docs/report/` | chapter sources, the Markdown to LaTeX converter, the build script and the LaTeX output |
 | `docs/architecture/` | the n8n workflow node by node, and the model endpoint |
 | `docs/guides/` | setup, cloud n8n, launcher, testing |
