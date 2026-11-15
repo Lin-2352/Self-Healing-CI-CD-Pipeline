@@ -1,15 +1,14 @@
-"""Live Qwen3.8-27B endpoint on Kaggle 2xT4 - fast path (no compile).
+"""Qwen3.8-27B endpoint on Kaggle 2xT4, no compiling.
 
-Deploy method borrowed from linsxav/qwopus3-6-35b-a3b-1: the CUDA llama-server is built ONCE
-in linsxav/llama-server-builder and attached here via kernel_sources, so startup is an unzip
-plus LD_LIBRARY_PATH instead of ~40 minutes of cmake on 4 slow vCPUs.
+The CUDA llama-server is built once in linsxav/llama-server-builder and attached to this kernel
+through kernel_sources (the trick comes from linsxav/qwopus3-6-35b-a3b-1). Startup is an unzip and an
+LD_LIBRARY_PATH instead of about 40 minutes of cmake on 4 slow vCPUs.
 
-Model: chosen in kaggle/endpoint/models.json; kaggle/tools/build_endpoint.py writes the chosen
-entry into MODEL_SPEC below and produces kaggle/endpoint/push/. The default is unsloth
-Qwen3.8-27B UD-Q4_K_XL (17.6 GB), the measured production model.
+The model is picked in kaggle/endpoint/models.json. kaggle/tools/build_endpoint.py pastes that entry
+into MODEL_SPEC below and writes kaggle/endpoint/push/. The default is unsloth Qwen3.8-27B
+UD-Q4_K_XL (17.6 GB), the one we measured.
 
-Speed: with -sm tensor + MTP n=2 the default serves ~24-30 tok/s on 2xT4 (measured live; it was
-~7-9 tok/s before those two levers).
+Speed on 2xT4 is about 24-30 tok/s with -sm tensor and MTP n=2. Before those two flags it was 7-9.
 """
 import json, os, re, shutil, subprocess, time, urllib.request, datetime, glob
 
@@ -19,8 +18,8 @@ BIN = OUT + "/bin"
 API_KEY = "selfheal-e2e-key"
 os.makedirs(OUT, exist_ok=True)
 
-# Shell commands are intentionally captured so health checks can distinguish a dead
-# server from a slow startup without flooding the Kaggle output stream.
+# sh() captures output instead of printing it, so a health check can tell a dead server
+# from a slow one without filling the Kaggle log.
 
 def sh(cmd, timeout=None):
     p = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
@@ -31,7 +30,7 @@ def banner(m):
     print(NL + "=" * 78 + NL + m + NL + "=" * 78, flush=True)
 
 
-# Fail before downloading a multi-GB model when Kaggle assigned the wrong machine shape.
+# wrong machine shape? stop now, before downloading 17 GB for nothing
 _, gpu, _ = sh("nvidia-smi --query-gpu=name,memory.total --format=csv,noheader")
 vram = 0
 for r in gpu.strip().split(NL):
@@ -41,7 +40,7 @@ print("GPU:", gpu.strip().replace(NL, " | "), "| total", vram, "MiB", flush=True
 if vram < 24000:
     print("ABORT: need 2xT4"); raise SystemExit(0)
 
-# The CUDA server is supplied as a Kaggle dataset; compiling on the hosted VM is too slow.
+# the server binary arrives as an attached zip; compiling it on this VM would take too long
 banner("EXTRACTING PREBUILT llama-server")
 cands = glob.glob("/kaggle/input/**/llama-server-cuda.zip", recursive=True)
 print("zip candidates:", cands, flush=True)
@@ -79,8 +78,7 @@ MODELS = "/kaggle/tmp/models"
 os.makedirs(MODELS, exist_ok=True)
 
 
-# Select the first matching GGUF and keep fallbacks available for repository changes
-# or a missing preferred quantization.
+# take the first gguf that matches; the fallbacks cover a repo that dropped the quant we want
 def fetch(repo, rx):
     try:
         files = [f for f in API.list_repo_files(repo) if f.lower().endswith(".gguf")]
@@ -97,8 +95,7 @@ def fetch(repo, rx):
     return p, repo
 
 
-# The endpoint is self-describing: the selected model and measured size are written
-# to endpoint.json for the caller and for post-run diagnostics.
+# which file we really got ends up in endpoint.json further down
 banner("DOWNLOADING MODEL %s (%s)" % (MODEL_SPEC["key"], REPO))
 MODEL, USED_REPO = fetch(REPO, QUANT)
 if not MODEL:
@@ -110,7 +107,7 @@ GB = os.path.getsize(MODEL) / 1e9
 
 
 def wait_health(port=8000, timeout=900):
-    """Wait for the local health endpoint, failing early if the process exits."""
+    """Poll /health until it answers 200. Give up early if llama-server has exited."""
     t = time.time()
     while time.time() - t < timeout:
         try:
@@ -133,9 +130,9 @@ def vram_used():
     return sum(vram_per_gpu()) or -1
 
 
-# Qwen3.8's chat template thinks unless the request says otherwise (server log: "thinking = 1").
-# The n8n workflow always sends enable_thinking, but ci-heal-backend only sends it to turn thinking
-# ON, so the server default has to be off. A request with enable_thinking:true still thinks.
+# Qwen3.8's chat template thinks unless a request says otherwise (the server log shows
+# "thinking = 1"). n8n always sends enable_thinking, but ci-heal-backend only sends it to turn
+# thinking on, so the server itself has to default to off. enable_thinking:true still works per request.
 _, _help, _ = sh(ENV_PREFIX + SERVER + " --help 2>&1")
 THINK_OFF_FLAG = "--chat-template-kwargs '{\"enable_thinking\":false}' " if "--chat-template-kwargs" in _help else ""
 if not THINK_OFF_FLAG:
@@ -144,10 +141,10 @@ if not THINK_OFF_FLAG:
 
 
 def launch(ctx, port=8000, timeout=900):
-    """Start one server candidate with the production tensor/MTP configuration."""
+    """Start llama-server at this context size with the settings we run in production."""
     sh("pkill -f llama-server; sleep 4")
-    # Tensor split balances weights across both T4s; MTP reduces decode latency.
-    # A single parallel slot preserves speculative-decoding quality for heal requests.
+    # -sm tensor splits the weights over both T4s and MTP speeds up decoding.
+    # One slot only: heal requests arrive one at a time.
     args = (" -m '%s' --n-gpu-layers 999 --ctx-size %d --flash-attn on "
             "-sm tensor --cache-type-k f16 --cache-type-v f16 "
             "--spec-type draft-mtp --spec-draft-n-max 2 --parallel 1 "
@@ -161,8 +158,8 @@ def launch(ctx, port=8000, timeout=900):
 
 
 def thinking_check(port=8000):
-    """Ask once without the thinking field and once with enable_thinking:true. Judged by the reply,
-    not by log lines: reasoning_content or a <think> block counts as thinking."""
+    """Ask the same question twice, plain and with enable_thinking:true. We look at the reply
+    (reasoning_content or a <think> block means it thought), not at the log."""
     def thought(extra):
         body = dict({"model": "local", "max_tokens": 600, "temperature": 0, "stream": False,
                      "messages": [{"role": "user", "content": "What is 17 * 23? Answer with the number."}]}, **extra)
@@ -184,8 +181,8 @@ def thinking_check(port=8000):
 
 
 def bench(port=8000, n=3, max_tokens=256):
-    """Real generation speed, reported by the server itself."""
-    # Record server timings and GPU symmetry instead of inferring performance from logs.
+    """Generation speed as the server itself reports it."""
+    # we keep the server's own timings plus memory use per GPU, and don't guess from the log
     got = []
     for i in range(n):
         body = json.dumps({"model": "local", "max_tokens": max_tokens, "temperature": 0.7,
@@ -220,8 +217,8 @@ def bench(port=8000, n=3, max_tokens=256):
             "vram_per_gpu": per, "tensor_split_engaged": sym}
 
 
-# Choose the largest context that both boots and completes a real request. The descending
-# ladder avoids spending the full health timeout on an oversized tensor-split allocation.
+# Start with the biggest context and step down until one boots and answers a real request.
+# Each try gets 5 minutes, so a size that is too big for memory fails fast.
 LADDER = [131072, 98304, 65536, 32768, 16384, 8192]
 RUNG_TIMEOUT = 300
 chosen = None
@@ -250,7 +247,7 @@ for ctx in LADDER:
     break
 assert chosen, "no context size worked"
 
-# Expose only the local OpenAI-compatible port; the API key remains required by llama-server.
+# only port 8000 goes public, and llama-server still checks the api key
 banner("STARTING CLOUDFLARE TUNNEL")
 sh("wget -qO /kaggle/tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/"
    "download/cloudflared-linux-amd64 && chmod +x /kaggle/tmp/cloudflared")
@@ -274,7 +271,7 @@ json.dump({"url": url, "api_key": API_KEY, "repo": USED_REPO,
            "gen_tps_best": chosen["bench"]["best"], **chosen["thinking"]},
           open(OUT + "/endpoint.json", "w"), indent=1)
 
-# Keep the hosted session bounded; the Kaggle CLI cannot cancel a running kernel reliably.
+# the session ends by itself after 1.5 h, because the kaggle CLI can't reliably cancel a running kernel
 HOURS = 1.5
 deadline = time.time() + HOURS * 3600
 
@@ -296,7 +293,7 @@ def announce():
 announce()
 n = 0
 while time.time() < deadline:
-    # Recover from an unexpected server exit without losing the public endpoint URL.
+    # if llama-server died, start it again; the tunnel stays up so the URL doesn't change
     time.sleep(60); n += 1
     if not sh("pgrep -f llama-server")[1].strip():
         print("!! server died, restarting", flush=True)
