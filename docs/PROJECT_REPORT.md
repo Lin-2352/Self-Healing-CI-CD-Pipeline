@@ -1305,7 +1305,7 @@ The launcher folder holds double-click scripts for every step, so nobody has to 
 2. Push a commit that breaks a test in `demo-app/`. The Actions run fails, the notify job posts to the n8n webhook, and a pull request on an `ai-fix-...` branch appears about a minute later.
 3. Stop the Kaggle session when finished, either with `end/stop_model_on_kaggle.bat` (it opens the notebook page and then checks that the session stopped) or directly in the page: View Active Events, the three-dot menu on the session, Stop Session.
 
-For the local copy of n8n instead of the cloud one, run `2_load_workflow_into_n8n.bat` and `3_start_n8n_live.bat` after step 1. The second imports the workflow and credentials with the current model address, and the third starts n8n with a public Cloudflare tunnel and points the repository's `N8N_WEBHOOK_URL` secret at it.
+For the local copy of n8n instead of the cloud one, run `2a_load_workflow_into_n8n.bat` and `3a_start_n8n_live.bat` after step 1. The second imports the workflow and credentials with the current model address, and the third starts n8n with a public Cloudflare tunnel and points the repository's `N8N_WEBHOOK_URL` secret at it.
 
 ### Cost and limits
 

@@ -38,7 +38,7 @@ On Cloud the node can be bound to the free OpenAI credits that come with the tri
 
 1. Activate the workflow. The production URL works only while the workflow is active.
 2. The failure webhook's production URL has this form: `https://<instance>.app.n8n.cloud/webhook/github-failure`. The path `github-failure` comes from the `GitHub Failure Webhook` node. `<instance>` is the name of your Cloud instance.
-3. Set it as the repository secret from your own PC: `gh secret set N8N_WEBHOOK_URL --repo <owner>/<repo>`, and paste the URL when asked. Also set `N8N_WEBHOOK_SECRET` the same way. `launcher\start\3_start_n8n_live.bat` is for a local n8n and would overwrite `N8N_WEBHOOK_URL` with a tunnel address, so do not run it while you use Cloud.
+3. Set it as the repository secret from your own PC: `gh secret set N8N_WEBHOOK_URL --repo <owner>/<repo>`, and paste the URL when asked. Also set `N8N_WEBHOOK_SECRET` the same way. `launcher\start\3a_start_n8n_live.bat` is for a local n8n and would overwrite `N8N_WEBHOOK_URL` with a tunnel address, so do not run it while you use Cloud.
 
 ## Send the model URL to Cloud
 

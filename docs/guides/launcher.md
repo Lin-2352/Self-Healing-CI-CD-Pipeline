@@ -16,8 +16,8 @@ Use this to show or edit the workflow without a model.
 ### Heal live with the n8n workflow
 
 1. Run `start\1_start_model_on_kaggle.bat`. It builds and pushes the endpoint notebook, watches the boot for about 4 minutes, saves the URL to `%LOCALAPPDATA%\selfheal-n8n\qwen_url.txt`, and posts the URL to the cloud n8n's `Set Model URL` webhook. `push.py` refuses to start a second session while one is running.
-2. Run `start\2_load_workflow_into_n8n.bat`. It stops n8n, imports the workflow and credentials with the new model URL, and activates it. Repeat it after every Kaggle boot, because the URL changes.
-3. Run `start\3_start_n8n_live.bat`. It starts n8n and a public tunnel and points the repository's `N8N_WEBHOOK_URL` secret at it.
+2. Run `start\2a_load_workflow_into_n8n.bat`. It stops n8n, imports the workflow and credentials with the new model URL, and activates it. Repeat it after every Kaggle boot, because the URL changes.
+3. Run `start\3a_start_n8n_live.bat`. It starts n8n and a public tunnel and points the repository's `N8N_WEBHOOK_URL` secret at it.
 4. Push a breaking change under `demo-app/` to `main`. A heal PR should appear in about a minute.
 5. Stop everything with `end\stop_everything.bat`.
 

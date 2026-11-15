@@ -217,7 +217,7 @@ health timeout before the next rung is attempted. Inspect the selected context, 
 This is expected after a new Cloudflare quick-tunnel session. `watch_deploy.py` saves the new address,
 and `python tools/golive/set_cloud_qwen_url.py` posts it to the cloud workflow's Set Model URL webhook
 (the launcher does both). The `QWEN_BASE_URL` variable in n8n is only a fallback. For the local n8n,
-re-import the workflow with `launcher/start/2_load_workflow_into_n8n.bat`.
+re-import the workflow with `launcher/start/2a_load_workflow_into_n8n.bat`.
 
 ### Logs are empty or contain encoding errors
 

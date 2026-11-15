@@ -68,8 +68,8 @@ On a local n8n you do not create these by hand. `tools/golive/n8n_import.py` wri
 
 ## Load the workflow and start n8n
 
-1. Run `launcher\start\2_load_workflow_into_n8n.bat`. It stops any running n8n, imports the credentials and `n8n/self_healing_pipeline.json` with id `selfHealPipeline01`, and activates the workflow. Run it again after every new Kaggle session.
-2. Run `launcher\start\3_start_n8n_live.bat`. `up.py` starts n8n on port 5678, starts a Cloudflare quick tunnel, and sets the repository secret `N8N_WEBHOOK_URL` to the tunnel address plus `/webhook/github-failure`. It first probes the webhook with a wrong secret and waits for a 401 or 403, which shows the webhook is registered and guarded.
+1. Run `launcher\start\2a_load_workflow_into_n8n.bat`. It stops any running n8n, imports the credentials and `n8n/self_healing_pipeline.json` with id `selfHealPipeline01`, and activates the workflow. Run it again after every new Kaggle session.
+2. Run `launcher\start\3a_start_n8n_live.bat`. `up.py` starts n8n on port 5678, starts a Cloudflare quick tunnel, and sets the repository secret `N8N_WEBHOOK_URL` to the tunnel address plus `/webhook/github-failure`. It first probes the webhook with a wrong secret and waits for a 401 or 403, which shows the webhook is registered and guarded.
 
 To look at the workflow without a tunnel or any change on GitHub, run `launcher\start\start_n8n_local_only.bat` (`up.py --local`) and open http://localhost:5678.
 
@@ -102,13 +102,13 @@ The workflow's `Build AI Prompt` node refuses a payload whose `failure_kind` is 
 ## First test
 
 1. Check the app on its own: `cd demo-app`, `npm install`, `npm test`. The output ends with `smoke test passed` and `api test passed (4 routes)`.
-2. Make sure the model answers (`show_model_info.bat`) and that `3_start_n8n_live.bat` finished without an error.
+2. Make sure the model answers (`show_model_info.bat`) and that `3a_start_n8n_live.bat` finished without an error.
 3. On `main`, break something in `demo-app/`. For example, in `demo-app/src/format.js` change `sum: a + b` to `sum: a - b`, so the `/sum?a=2&b=3` check in `demo-app/test/api.test.js` fails. Commit and push.
 4. Open the Actions tab. `build-and-test` fails and `notify-n8n-on-failure` runs.
 5. Watch the executions in n8n at http://localhost:5678, or run `python tools/golive/exec_stats.py` to list recent executions from the local n8n database.
 6. An `ai-fix-...` pull request should appear. In earlier live runs it took about 40 seconds from the push (`docs/results/GOLIVE_RESULTS.md`). The pull request gets its own CI run through the `pull_request` trigger.
 
-When you finish, run `launcher\end\stop_everything.bat`. The repository secret keeps the dead tunnel address, and the notify job only warns until the next `3_start_n8n_live.bat`.
+When you finish, run `launcher\end\stop_everything.bat`. The repository secret keeps the dead tunnel address, and the notify job only warns until the next `3a_start_n8n_live.bat`.
 
 ## Problems seen so far
 
