@@ -11,7 +11,8 @@ PASS extract: SEARCH absent          rejected=True -> commit comment posted=True
 PASS extract: SEARCH not unique      rejected=True -> commit comment posted=True quotes reason=True
 PASS extract: patch does not parse   rejected=True -> commit comment posted=True quotes reason=True
 PASS extract: old fixed_code schema  rejected=True -> commit comment posted=True quotes reason=True
-PASS failure: model 524 on retry -> PR #37 comment posted=True, quotes the timeout=True, names attempt 2=True
+PASS failure: model 524 and the fallback fails too -> PR #37 comment posted=True, quotes the timeout=True, names attempt 2=True, says the fallback failed=True
+PASS failure: Qwen 524, fallback answers -> routed through the fallback=True, golden fix=True, no failure comment=True
 PASS failure: streamed happy path -> request stream=True, reassembled=True, timings kept=True, golden=True, no comment=True
 PASS probe: job log 404 -> heal still runs with '(log unavailable)'? rc=0 heal=True marker=True
 PASS probe: hostile chars in payload -> valid request? True, heal ok? True, actor round-trips: True

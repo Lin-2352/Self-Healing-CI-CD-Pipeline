@@ -6,7 +6,7 @@ before it may be trusted. `--check` does exactly that comparison and is the firs
 after any edit here. A generator that cannot reproduce the shipped workflow is worse than none,
 because it invites silently regenerating a *different* pipeline.
 
-Design difference from the original: the four Code-node bodies live in `tools/nodes/*.js`
+Design difference from the original: the Code-node bodies live in `tools/nodes/*.js`
 instead of being embedded as Python string constants. Editing real .js with syntax highlighting
 beats editing a 3,900-character Python literal, and it keeps the diff of a node change readable.
 
@@ -55,8 +55,11 @@ def build():
 
     nodes = []
     fork_x = -100 + 220 * ORDER.index(FORK)
+    model_x = -100 + 220 * ORDER.index("Model OK?")
     placed = [(n, [-100 + 220 * i, 300]) for i, n in enumerate(ORDER)] + \
-             [(n, [fork_x + 220 * (i + 1), 520]) for i, n in enumerate(FAIL)]
+             [(n, [fork_x + 220 * (i + 1), 520]) for i, n in enumerate(FAIL)] + \
+             [(n, [model_x + 220 * i, 540]) for i, n in enumerate(FALLBACK)] + \
+             [(n, [-100 + 220 * i, 760]) for i, n in enumerate(URL_HOOK)]
     for name, pos in placed:
         src = NEW_NODES.get(name) or by_name[name]
         node = {
@@ -86,6 +89,13 @@ def build():
     connections[FORK]["main"].append([link(FAIL[0])])
     for a, b in zip(FAIL, FAIL[1:]):
         connections[a] = {"main": [[link(b)]]}
+    # The model call can fail, time out or be cut off: "Model OK?" then sends the prompt to the
+    # OpenAI node, whose reply is reshaped and rejoins the chain at "Assemble Model Reply".
+    connections["Model OK?"]["main"].append([link(FALLBACK[0])])
+    connections[FALLBACK[0]] = {"main": [[link(FALLBACK[1])]]}
+    connections[FALLBACK[1]] = {"main": [[link("Assemble Model Reply")]]}
+    # The launcher posts the new tunnel address here after each Kaggle boot.
+    connections[URL_HOOK[0]] = {"main": [[link(URL_HOOK[1])]]}
 
     return {"name": WF_NAME, "nodes": nodes, "connections": connections,
             "settings": shipped.get("settings", {"executionOrder": "v1"}),
@@ -93,11 +103,13 @@ def build():
 
 
 ORDER = ["GitHub Failure Webhook", "Fetch Job Logs", "Fetch Failed Job Log", "Download Job Log",
-         "Fetch Changed Files", "Pick Candidate Files", "Fetch File Content", "Build AI Prompt", "Qwen3.8 Analyze",
-         "Assemble Model Reply", "Extract AI Response", "Fix Ready?", "Create Branch", "Branch Ready",
+         "Fetch Changed Files", "Pick Candidate Files", "Fetch File Content", "Build AI Prompt", "Get Model URL",
+         "Qwen3.8 Analyze", "Model OK?", "Assemble Model Reply", "Extract AI Response", "Fix Ready?", "Create Branch", "Branch Ready",
          "Get File SHA", "Push Fix File", "Open Pull Request", "Heal Outcome"]
 FORK = "Fix Ready?"
 FAIL = ["Explain Failure", "Post Failure Comment"]
+FALLBACK = ["OpenAI Fallback", "Normalize OpenAI Reply"]
+URL_HOOK = ["Set Model URL", "Store Model URL"]
 
 # Nodes whose spec this generator OWNS (added after the shipped JSON was reverse-engineered).
 # They take precedence over the shipped copy, so editing them here is how they change; --check
@@ -219,9 +231,100 @@ NEW_NODES = {
         "typeVersion": 4.2,
         "credentials": {"httpBearerAuth": {"id": "github-pat", "name": "GitHub PAT"}},
     },
+    # The Kaggle endpoint gets a new tunnel address on every boot. "Get Model URL" supplies it
+    # (stored address first, QWEN_BASE_URL second) so the HTTP node below never needs editing.
+    "Get Model URL": {
+        "parameters": {"jsCode": ""},          # body from tools/nodes/get_model_url.js
+        "id": "get-model-url",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+    },
+    # Streamed (see Assemble Model Reply). 240 s, not 15 min: a stuck endpoint should reach the
+    # OpenAI fallback while the run is still useful. Errors continue as data for "Model OK?".
+    "Qwen3.8 Analyze": {
+        "parameters": {
+            "method": "POST",
+            "url": "={{ $json.model_base_url }}/v1/chat/completions",
+            "authentication": "genericCredentialType",
+            "genericAuthType": "httpBearerAuth",
+            "sendBody": True,
+            "specifyBody": "json",
+            "jsonBody": "={{ JSON.stringify($json.request_body) }}",
+            "options": {"timeout": 240000, "response": {"response": {"responseFormat": "text"}}},
+        },
+        "id": "qwen3.8-analyze",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "credentials": {"httpBearerAuth": {"id": "qwen-endpoint", "name": "Qwen3.8 Endpoint Key"}},
+        "onError": "continueRegularOutput",
+    },
+    # True when the Qwen reply is a finished stream: no error, and the text ends in [DONE] or
+    # carries a finish_reason. Anything else (error item, connection reset, cut stream) is false.
+    "Model OK?": {
+        "parameters": {
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict"},
+                "conditions": [{
+                    "id": "model-ok-cond",
+                    "leftValue": "={{ !$json.error && typeof $json.data === 'string' && "
+                                 "($json.data.includes('[DONE]') || $json.data.includes('\"finish_reason\":\"')) }}",
+                    "rightValue": "",
+                    "operator": {"type": "boolean", "operation": "true", "singleValue": True},
+                }],
+                "combinator": "and",
+            },
+            "options": {},
+        },
+        "id": "model-ok",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+    },
+    # Fallback model. No credential is bound here: each n8n attaches its own OpenAI credential
+    # (on n8n Cloud the included free credits; they did not authorise webhook-triggered runs in
+    # our test, see docs). With none attached the node fails, continues as data and
+    # "Normalize OpenAI Reply" turns that into a clear error for the failure comment.
+    "OpenAI Fallback": {
+        "parameters": {
+            "modelId": {"__rl": True, "value": "gpt-4.1", "mode": "list", "cachedResultName": "GPT-4.1"},
+            "responses": {"values": [
+                {"type": "text", "role": "system",
+                 "content": "={{ $('Build AI Prompt').first().json.request_body.messages[0].content }}"},
+                {"type": "text", "role": "user",
+                 "content": "={{ $('Build AI Prompt').first().json.request_body.messages[1].content }}"}]},
+            "builtInTools": {},
+            "options": {},
+        },
+        "id": "openai-fallback",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "typeVersion": 2.3,
+        "onError": "continueRegularOutput",
+    },
+    "Normalize OpenAI Reply": {
+        "parameters": {"jsCode": ""},          # body from tools/nodes/normalize_openai_reply.js
+        "id": "normalize-openai-reply",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "onError": "continueRegularOutput",
+    },
+    # Second webhook, same header-auth credential as the failure webhook.
+    "Set Model URL": {
+        "parameters": {"httpMethod": "POST", "path": "set-qwen-url", "authentication": "headerAuth",
+                       "responseMode": "lastNode", "options": {"rawBody": False}},
+        "id": "set-model-url",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "credentials": {"httpHeaderAuth": {"id": "n8n-webhook-secret", "name": "N8N Webhook Secret"}},
+        "webhookId": "b3e5a8c1-6d27-4f90-8a14-5c9e2d7f1b63",
+    },
+    "Store Model URL": {
+        "parameters": {"jsCode": ""},          # body from tools/nodes/store_model_url.js
+        "id": "store-model-url",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+    },
 }
 
-SLUG = {n: re.sub(r"[^a-z0-9]+", "_", n.lower()).strip("_") for n in ORDER + FAIL}
+SLUG = {n: re.sub(r"[^a-z0-9]+", "_", n.lower()).strip("_") for n in ORDER + FAIL + FALLBACK + URL_HOOK}
 
 
 def serialize(wf):

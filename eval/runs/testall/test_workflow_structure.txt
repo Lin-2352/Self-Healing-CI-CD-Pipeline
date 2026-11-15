@@ -1,0 +1,27 @@
+model call path
+  Build AI Prompt -> Get Model URL -> Qwen3.8 Analyze                PASS 
+  Qwen3.8 Analyze -> Model OK?                                       PASS 
+  Model OK? yes -> Assemble Model Reply, no -> OpenAI Fallback       PASS 
+  OpenAI Fallback -> Normalize OpenAI Reply -> Assemble Model Reply  PASS 
+  Qwen URL comes from Get Model URL                                  PASS 
+  Qwen gives up after 240 s so the fallback can run                  PASS 
+  Qwen errors continue as data (the IF reads them)                   PASS 
+Set Model URL webhook
+  is a POST webhook on /set-qwen-url                                 PASS 
+  uses the same header-auth credential as the failure webhook        PASS 
+  answers with the last node's output                                PASS 
+  Set Model URL -> Store Model URL                                   PASS 
+  webhook ids differ (n8n registers them per id)                     PASS 
+OpenAI fallback node
+  is the n8n OpenAI node on gpt-4.1                                  PASS 
+  sends the same two messages the Qwen request carries               PASS 
+  its own failure continues as data                                  PASS 
+  ships with no credential bound (each n8n attaches its own)         PASS 
+whole file
+  node names are unique                                              PASS 
+  every connection target exists                                     PASS 
+  every connection source exists                                     PASS 
+  no secrets: no ghp_/github_pat_/sk- tokens                         PASS 
+  $vars.QWEN_BASE_URL appears only in Get Model URL                  PASS 
+
+ALL PASS

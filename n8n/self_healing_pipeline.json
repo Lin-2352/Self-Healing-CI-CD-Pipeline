@@ -179,15 +179,28 @@
     },
     {
       "parameters": {
+        "jsCode": "// The Qwen endpoint gets a new address on every Kaggle boot. The launcher posts it to \"Set Model URL\";\n// this node reads it, and falls back to the QWEN_BASE_URL variable when nothing has been stored.\nconst s = $getWorkflowStaticData('global');\nconst base = String(s.qwenUrl || $vars.QWEN_BASE_URL || '').trim().replace(/\\/+$/, '');\nif (!base) throw new Error('No model URL: run the launcher or set the QWEN_BASE_URL variable');\nreturn [{ json: { ...$input.first().json, model_base_url: base }, pairedItem: { item: 0 } }];\n"
+      },
+      "id": "get-model-url",
+      "name": "Get Model URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1660,
+        300
+      ]
+    },
+    {
+      "parameters": {
         "method": "POST",
-        "url": "={{ $vars.QWEN_BASE_URL }}/v1/chat/completions",
+        "url": "={{ $json.model_base_url }}/v1/chat/completions",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBearerAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.request_body) }}",
         "options": {
-          "timeout": 900000,
+          "timeout": 240000,
           "response": {
             "response": {
               "responseFormat": "text"
@@ -200,7 +213,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1660,
+        1880,
         300
       ],
       "credentials": {
@@ -213,6 +226,39 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "model-ok-cond",
+              "leftValue": "={{ !$json.error && typeof $json.data === 'string' && ($json.data.includes('[DONE]') || $json.data.includes('\"finish_reason\":\"')) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "model-ok",
+      "name": "Model OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        300
+      ]
+    },
+    {
+      "parameters": {
         "jsCode": "// Rebuild the model's STREAMED reply into the non-stream shape the rest of the workflow reads:\n//   { choices: [{ message: { content, reasoning_content }, finish_reason }], usage, timings }\n//\n// Why streaming: the endpoint sits behind a Cloudflare quick tunnel, which cuts any request whose\n// origin stays silent for 120 s (HTTP 524). Without streaming nothing is sent until generation ends,\n// so a long thinking retry died at 125.9 s (live run, n8n execution #33). Streamed, tokens flow the\n// whole time and the length of the call no longer matters.\n//\n// \"Qwen3.8 Analyze\" returns the raw SSE body as text (json.data). A plain JSON reply (non-stream, or\n// an older server) passes through unchanged. A failed call arrives as an error item and is rethrown\n// with its original message, so the failure branch can say what actually went wrong.\nconst item = $input.first().json || {};\n\nif (item.error) {\n  const e = item.error;\n  const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));\n  const desc = (e && e.description) ? ' - ' + String(e.description).slice(0, 200) : '';\n  throw new Error('Model call failed: ' + String(msg).slice(0, 300) + desc);\n}\n\n// Already a finished completion object: nothing to assemble.\nif (Array.isArray(item.choices)) {\n  return [{ json: item, pairedItem: { item: 0 } }];\n}\n\nconst raw = typeof item.data === 'string' ? item.data : '';\nif (!raw.trim()) throw new Error('Model call returned an empty body');\n\nlet content = '', reasoning = '', finish = null, timings = null, usage = null, done = false, chunks = 0;\nfor (const line of raw.split(/\\r?\\n/)) {\n  if (!line.startsWith('data:')) continue;\n  const payload = line.slice(5).trim();\n  if (payload === '[DONE]') { done = true; break; }\n  let ev;\n  try { ev = JSON.parse(payload); } catch (e) { continue; }\n  if (ev.error) throw new Error('Model server error mid-stream: ' + JSON.stringify(ev.error).slice(0, 300));\n  chunks++;\n  const c = (ev.choices || [])[0] || {};\n  const d = c.delta || {};\n  if (typeof d.content === 'string') content += d.content;\n  if (typeof d.reasoning_content === 'string') reasoning += d.reasoning_content;\n  if (c.finish_reason) finish = c.finish_reason;\n  if (ev.timings) timings = ev.timings;\n  if (ev.usage) usage = ev.usage;\n}\n\n// A stream that stops without [DONE] and without a finish_reason was cut off (tunnel drop, server\n// crash). Report it rather than hand a half-written patch to the applier.\nif (!done && !finish) {\n  throw new Error('Model stream ended early after ' + chunks + ' chunks (no finish_reason, no [DONE])');\n}\nif (!chunks) throw new Error('Model stream carried no data events: ' + raw.slice(0, 200));\n\nreturn [{ json: {\n  choices: [{ index: 0, finish_reason: finish,\n              message: { role: 'assistant', content, reasoning_content: reasoning } }],\n  usage,\n  timings,\n  streamed: true,\n  chunks\n}, pairedItem: { item: 0 } }];\n"
       },
       "id": "assemble-model-reply",
@@ -220,7 +266,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1880,
+        2320,
         300
       ],
       "onError": "continueRegularOutput"
@@ -234,7 +280,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2100,
+        2540,
         300
       ],
       "onError": "continueRegularOutput"
@@ -268,7 +314,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2320,
+        2760,
         300
       ]
     },
@@ -288,7 +334,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2540,
+        2980,
         300
       ],
       "credentials": {
@@ -308,7 +354,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2760,
+        3200,
         300
       ]
     },
@@ -324,7 +370,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2980,
+        3420,
         300
       ],
       "credentials": {
@@ -350,7 +396,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3200,
+        3640,
         300
       ],
       "credentials": {
@@ -376,7 +422,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3420,
+        3860,
         300
       ],
       "credentials": {
@@ -396,7 +442,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3640,
+        4080,
         300
       ]
     },
@@ -409,7 +455,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2540,
+        2980,
         520
       ]
     },
@@ -429,7 +475,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2760,
+        3200,
         520
       ],
       "credentials": {
@@ -438,6 +484,94 @@
           "name": "GitHub PAT"
         }
       }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1"
+        },
+        "responses": {
+          "values": [
+            {
+              "type": "text",
+              "role": "system",
+              "content": "={{ $('Build AI Prompt').first().json.request_body.messages[0].content }}"
+            },
+            {
+              "type": "text",
+              "role": "user",
+              "content": "={{ $('Build AI Prompt').first().json.request_body.messages[1].content }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "openai-fallback",
+      "name": "OpenAI Fallback",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        2100,
+        540
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fallback path: the OpenAI node answered because the Qwen endpoint failed, timed out or was cut off.\n// Rebuild its reply as { choices: [{ message: { content } }] } so Assemble Model Reply and\n// Extract AI Response work unchanged.\nconst item = $input.first().json || {};\nif (item.error) {\n  const e = item.error;\n  const msg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));\n  // Say what went wrong with Qwen as well; the failure comment is the only place anyone reads it.\n  let qwenWhy = 'its reply was incomplete';\n  try {\n    const q = $('Qwen3.8 Analyze').first().json || {};\n    if (q.error) qwenWhy = typeof q.error === 'string' ? q.error : (q.error.message || JSON.stringify(q.error));\n  } catch (err) { /* node output not readable here: keep the generic reason */ }\n  throw new Error('Qwen failed (' + String(qwenWhy).slice(0, 300) + ') and the OpenAI fallback failed too: '\n    + String(msg).slice(0, 300));\n}\nfunction textOf(x) {\n  if (!x) return '';\n  if (typeof x === 'string') return x;\n  if (Array.isArray(x)) return x.map(textOf).join('');\n  if (typeof x === 'object') {\n    if (typeof x.text === 'string') return x.text;\n    if (x.content !== undefined) return textOf(x.content);\n    if (x.message !== undefined) return textOf(x.message);\n    if (x.output !== undefined) return textOf(x.output);\n  }\n  return '';\n}\nlet content = textOf(item.output) || textOf(item.message) || textOf(item.content) || textOf(item.text)\n  || textOf((item.choices || [])[0]);\nif (!content.trim()) throw new Error('OpenAI fallback returned no text: ' + JSON.stringify(item).slice(0, 300));\nreturn [{ json: { choices: [{ index: 0, finish_reason: 'stop',\n  message: { role: 'assistant', content, reasoning_content: '' } }],\n  provider: 'openai-fallback' }, pairedItem: { item: 0 } }];\n"
+      },
+      "id": "normalize-openai-reply",
+      "name": "Normalize OpenAI Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        540
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "set-qwen-url",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "set-model-url",
+      "name": "Set Model URL",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        760
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "n8n-webhook-secret",
+          "name": "N8N Webhook Secret"
+        }
+      },
+      "webhookId": "b3e5a8c1-6d27-4f90-8a14-5c9e2d7f1b63"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Called by the launcher after each Kaggle boot: remember the endpoint's new tunnel address.\nconst body = $input.first().json.body || {};\nconst url = String(body.url || '').trim().replace(/\\/+$/, '');\nif (!/^https:\\/\\/[a-z0-9-]+\\.trycloudflare\\.com$/.test(url)) {\n  throw new Error('refusing to store a model URL that is not a trycloudflare.com address: ' + url.slice(0, 80));\n}\nconst s = $getWorkflowStaticData('global');\ns.qwenUrl = url;\ns.qwenUrlSetAt = new Date().toISOString();\nreturn [{ json: { ok: true, url, stored_at: s.qwenUrlSetAt } }];\n"
+      },
+      "id": "store-model-url",
+      "name": "Store Model URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        760
+      ]
     }
   ],
   "connections": {
@@ -522,6 +656,17 @@
       "main": [
         [
           {
+            "node": "Get Model URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Model URL": {
+      "main": [
+        [
+          {
             "node": "Qwen3.8 Analyze",
             "type": "main",
             "index": 0
@@ -533,7 +678,25 @@
       "main": [
         [
           {
+            "node": "Model OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Model OK?": {
+      "main": [
+        [
+          {
             "node": "Assemble Model Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI Fallback",
             "type": "main",
             "index": 0
           }
@@ -640,6 +803,39 @@
         [
           {
             "node": "Post Failure Comment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Fallback": {
+      "main": [
+        [
+          {
+            "node": "Normalize OpenAI Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize OpenAI Reply": {
+      "main": [
+        [
+          {
+            "node": "Assemble Model Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Model URL": {
+      "main": [
+        [
+          {
+            "node": "Store Model URL",
             "type": "main",
             "index": 0
           }

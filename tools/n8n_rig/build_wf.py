@@ -29,6 +29,17 @@ qwen = copy.deepcopy(S["Qwen3.8 Analyze"])
 qwen["parameters"]["url"] = "http://127.0.0.1:%d/model" % PORT
 qwen["parameters"]["authentication"] = "none"
 qwen["parameters"].pop("genericAuthType", None); qwen.pop("credentials", None)
+# Get Model URL: VERBATIM except the $vars fallback, which community n8n cannot read (the launcher's
+# n8n_import.py makes the same substitution). Model OK? and Normalize OpenAI Reply: VERBATIM. The
+# OpenAI node itself needs an OpenAI credential, so the rig swaps it for an HTTP call to the mock.
+geturl = copy.deepcopy(S["Get Model URL"])
+geturl["parameters"]["jsCode"] = geturl["parameters"]["jsCode"].replace(
+    "$vars.QWEN_BASE_URL", json.dumps("http://127.0.0.1:%d" % PORT))
+assert "$vars" not in geturl["parameters"]["jsCode"]
+openai = {"parameters": {"method": "POST", "url": "http://127.0.0.1:%d/openai" % PORT, "sendBody": True,
+                         "specifyBody": "json", "jsonBody": "={{ JSON.stringify({ stream: false }) }}", "options": {}},
+          "id": "openai-stub", "name": "OpenAI Fallback", "type": "n8n-nodes-base.httpRequest",
+          "typeVersion": 4.2, "onError": "continueRegularOutput"}
 nodes = [
     {"parameters": {}, "id": "start", "name": "Start", "type": "n8n-nodes-base.manualTrigger", "typeVersion": 1, "position": [0, 0]},
     http("GitHub Failure Webhook", "hook", 200),   # the real one is a webhook trigger; its OUTPUT shape is {body: payload}
@@ -39,7 +50,9 @@ nodes = [
     dict(copy.deepcopy(S["Pick Candidate Files"]), position=[700, 0]),  # VERBATIM (which files)
     dict(filefetch, position=[800, 0]),                                 # verbatim except host (JSON contents API)
     dict(copy.deepcopy(S["Build AI Prompt"]), position=[1000, 0]),     # VERBATIM
+    dict(geturl, position=[1100, 0]),                                   # verbatim except the $vars fallback
     dict(qwen, position=[1200, 0]),                                     # verbatim except URL/auth
+    dict(copy.deepcopy(S["Model OK?"]), position=[1250, 0]),            # VERBATIM (the fork to the fallback)
     dict(copy.deepcopy(S["Assemble Model Reply"]), position=[1300, 0]), # VERBATIM (streamed reply)
     dict(copy.deepcopy(S["Extract AI Response"]), position=[1400, 0]),  # VERBATIM
     dict(copy.deepcopy(S["Fix Ready?"]), position=[1600, 0]),           # VERBATIM (the fork)
@@ -49,10 +62,15 @@ comment = copy.deepcopy(S["Post Failure Comment"])
 comment["parameters"]["url"] = comment["parameters"]["url"].replace(
     "https://api.github.com", "http://127.0.0.1:%d" % PORT)
 assert "127.0.0.1" in comment["parameters"]["url"]
-fail = [dict(copy.deepcopy(S["Explain Failure"]), position=[1800, 200]), dict(comment, position=[2000, 200])]
+fail = [dict(copy.deepcopy(S["Explain Failure"]), position=[1800, 200]), dict(comment, position=[2000, 200]),
+        dict(openai, position=[1250, 300]),
+        dict(copy.deepcopy(S["Normalize OpenAI Reply"]), position=[1300, 300])]       # VERBATIM
 order = [n["name"] for n in nodes]
 link = lambda b: {"node": b, "type": "main", "index": 0}
 conns = {a: {"main": [[link(b)]]} for a, b in zip(order, order[1:])}
+conns["Model OK?"] = {"main": [[link("Assemble Model Reply")], [link("OpenAI Fallback")]]}
+conns["OpenAI Fallback"] = {"main": [[link("Normalize OpenAI Reply")]]}
+conns["Normalize OpenAI Reply"] = {"main": [[link("Assemble Model Reply")]]}
 conns["Fix Ready?"] = {"main": [[], [link("Explain Failure")]]}     # true: end of the rig; false: comment
 conns["Explain Failure"] = {"main": [[link("Post Failure Comment")]]}
 wf = {"id": "vrfyFullFront001", "name": "verify-full-front", "nodes": nodes + fail,

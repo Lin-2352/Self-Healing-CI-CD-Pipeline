@@ -177,9 +177,26 @@ if which in ("all", "failure"):
     cm = rec("comment_post.json") or {}
     body = cm.get("body") or ""
     ok = (cm.get("path") == "/repos/demo/app/issues/37/comments" and "120-second" in body
-          and "attempt 2" in body and "A human needs to look" in body and cm.get("auth"))
-    print("%-4s failure: model 524 on retry -> PR #37 comment posted=%s, quotes the timeout=%s, names attempt 2=%s"
-          % ("PASS" if ok else "FAIL", bool(cm), "120-second" in body, "attempt 2" in body))
+          and "attempt 2" in body and "A human needs to look" in body and cm.get("auth")
+          and "OpenAI fallback failed too" in body)
+    print("%-4s failure: model 524 and the fallback fails too -> PR #37 comment posted=%s, quotes the timeout=%s, names attempt 2=%s, says the fallback failed=%s"
+          % ("PASS" if ok else "FAIL", bool(cm), "120-second" in body, "attempt 2" in body,
+             "OpenAI fallback failed too" in body))
+    # Qwen down, fallback answers: Model OK? routes to the OpenAI stub, Normalize reshapes its reply,
+    # and the same Extract node produces the golden fix. No failure comment.
+    s = scenario("missing_app_init"); s["model_status"] = 524; s["openai"] = s["model"]
+    rc, txt, req, res = run("fallback", s)
+    try:
+        rd = json.loads(txt[txt.find("{"):])["data"]["resultData"]["runData"]
+        norm = rd["Normalize OpenAI Reply"][0]["data"]["main"][0][0]["json"]
+        assembled = rd["Assemble Model Reply"][0]["data"]["main"][0][0]["json"]
+    except Exception:
+        norm, assembled = {}, {}
+    gold = bool(res) and base64.b64decode(res.get("base64_content", "")).decode("utf-8") == G
+    ok = (rc == 0 and norm.get("provider") == "openai-fallback" and gold and not rec("comment_post.json")
+          and assembled.get("provider") == "openai-fallback")
+    print("%-4s failure: Qwen 524, fallback answers -> routed through the fallback=%s, golden fix=%s, no failure comment=%s"
+          % ("PASS" if ok else "FAIL", norm.get("provider") == "openai-fallback", gold, not rec("comment_post.json")))
     # streamed happy path: the reply really went through SSE and the Assemble node rebuilt it
     rc, txt, req, res = run("stream", scenario("missing_app_init"))
     try:

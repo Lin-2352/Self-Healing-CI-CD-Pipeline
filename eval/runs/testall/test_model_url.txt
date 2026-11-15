@@ -1,0 +1,34 @@
+Store Model URL
+  valid address is stored and echoed                                 PASS 
+  static data now holds it                                           PASS 
+  storage time is recorded                                           PASS 
+  trailing slashes are stripped                                      PASS 
+  rejects 'https://evil.example.com'                                 PASS 
+    and keeps the old address                                        PASS 
+  rejects 'http://abc.trycloudflare.com'                             PASS 
+    and keeps the old address                                        PASS 
+  rejects 'https://hats-conducted-committees-hollywood.trycloudflare.com/v1' PASS 
+    and keeps the old address                                        PASS 
+  rejects ''                                                         PASS 
+    and keeps the old address                                        PASS 
+  rejects 'https://abc.trycloudflare.com.evil.com'                   PASS 
+    and keeps the old address                                        PASS 
+  rejects 'https://abc.trycloudflare.com@evil.com'                   PASS 
+    and keeps the old address                                        PASS 
+  missing url is rejected                                            PASS 
+Get Model URL
+  stored address wins over the variable                              PASS 
+  the incoming item is passed through                                PASS 
+  variable is the fallback, slash stripped                           PASS 
+  neither set -> clear error                                         PASS 
+Normalize OpenAI Reply
+  Responses-API shape -> completion with the text                    PASS 
+  marked as coming from the fallback                                 PASS 
+  chat shape -> completion                                           PASS 
+  bare text field -> completion                                      PASS 
+  error item -> throws naming both failures                          PASS 
+  failure comment keeps Qwen's own error too                         PASS 
+  cut stream (no Qwen error) is named as such                        PASS 
+  no text -> throws                                                  PASS 
+
+ALL PASS

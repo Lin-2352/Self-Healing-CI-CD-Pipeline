@@ -10,6 +10,8 @@ It emulates the n8n Code-node surface a node actually touches:
     $input.first().json          the incoming item
     $('Node Name').first().json  another node's output   <- typed RPC in real n8n
     $node['Node Name'].json      the same, via path lookup
+    $getWorkflowStaticData('global')   ctx["static"], returned afterwards as `static_after`
+    $vars.NAME                   ctx["vars"]
     return [{ json: {...}, pairedItem: {...} }]
 
 ⚠️ One real n8n behaviour is deliberately NOT emulated, because faking it would hide the bug it
@@ -64,14 +66,20 @@ const $node = new Proxy({}, {
   }
 });
 const $json = (ctx.input || {});
+// Workflow static data and variables: ctx.static / ctx.vars. The static object is printed back as
+// `static_after` so a test can see what a node stored.
+const staticData = JSON.parse(JSON.stringify(ctx.static || {}));
+const $getWorkflowStaticData = () => staticData;
+const $vars = ctx.vars || {};
 
 let out, err = null;
 try {
-  out = new Function('$input', '$', '$node', '$json', body)($input, $, $node, $json);
+  out = new Function('$input', '$', '$node', '$json', '$getWorkflowStaticData', '$vars', body)(
+    $input, $, $node, $json, $getWorkflowStaticData, $vars);
 } catch (e) {
   err = { message: e.message, stack: (e.stack || '').split('\n').slice(0, 3).join(' | ') };
 }
-process.stdout.write(JSON.stringify({ ok: err === null, error: err, output: out }, null, 1));
+process.stdout.write(JSON.stringify({ ok: err === null, error: err, output: out, static_after: staticData }, null, 1));
 """
 
 

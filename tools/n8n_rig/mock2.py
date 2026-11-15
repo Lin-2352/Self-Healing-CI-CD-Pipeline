@@ -59,6 +59,13 @@ class H(http.server.BaseHTTPRequestHandler):
                  "auth": bool(self.headers.get("Authorization"))}))
             return self.send({"id": 1, "html_url": "http://mock/comment/1"})
         io.open(os.path.join(HERE, "last_request.json"), "w", encoding="utf-8").write(body)
+        # The OpenAI fallback stub: scenario["openai"] is the fix it answers with, "openai_status" makes it fail.
+        if p.startswith("/openai"):
+            if s.get("openai_status") or "openai" not in s:
+                b = json.dumps({"error": "Forbidden - perhaps check your credentials?"}).encode()
+                self.send_response(int(s.get("openai_status") or 403)); self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b); return
+            return self.send({"choices": [{"message": {"content": json.dumps(s["openai"])}, "finish_reason": "stop"}]})
         # Cloudflare's quick-tunnel timeout, as it really answered live (n8n execution #33)
         if s.get("model_status"):
             b = json.dumps({"error": "The origin web server did not return a complete response within the "
