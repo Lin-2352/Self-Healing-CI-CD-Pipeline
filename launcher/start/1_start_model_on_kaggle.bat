@@ -14,10 +14,9 @@ echo [2/4] Pushing it to Kaggle (push.py refuses if another session is running).
 python kaggle\tools\push.py endpoint || goto fail
 echo [3/4] Watching the boot. It takes about 4 minutes; leave this window open.
 python kaggle\tools\watch_deploy.py || goto fail
-echo [4/4] Updating QWEN_BASE_URL in the cloud n8n...
+echo [4/4] Telling the cloud n8n where the model is...
 python tools\golive\set_cloud_qwen_url.py
-if errorlevel 2 echo       (skipped: see the note above; the model itself is running)
-if errorlevel 1 if not errorlevel 2 echo       FAILED to update n8n: set QWEN_BASE_URL by hand under Variables.
+if errorlevel 1 echo       Could not update n8n. The model is running; run launcher\start\show_model_info.bat to see the URL.
 echo.
 echo Model is up. Its URL is saved in %LOCALAPPDATA%\selfheal-n8n\qwen_url.txt
 echo When you are done, run end\stop_model_on_kaggle.bat so it stops using GPU hours.

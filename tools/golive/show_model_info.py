@@ -33,16 +33,7 @@ def main():
     print("  API key (n8n 'Qwen3.8 Endpoint Key' token) : %s" % key)
     print("  status                       : %s" % status)
 
-    cfg_path = os.path.join(HOME, "cloud_api.json")
-    if os.path.exists(cfg_path):
-        import set_cloud_qwen_url as s
-        cfg = json.load(io.open(cfg_path, encoding="utf-8"))
-        code, data = s.call(cfg, "GET", "/variables?limit=250")
-        rows = data.get("data", data) if code == 200 and isinstance(data, dict) else []
-        cur = next((v.get("value") for v in rows if v.get("key") == "QWEN_BASE_URL"), None)
-        print("  cloud n8n QWEN_BASE_URL      : %s" % ("up to date" if cur == url else "OUT OF DATE (%s)" % (cur or "not set")))
-    else:
-        print("  cloud n8n QWEN_BASE_URL      : not checked (run launcher\\start\\setup_cloud_api_key.bat once to automate it)")
+    print("  cloud n8n                    : updated by 1_start_model_on_kaggle.bat (or run set_cloud_qwen_url.py)")
 
     subprocess.run("clip", input=url.encode("utf-8"), shell=True)
     print("\nThe base URL is on your clipboard.")
