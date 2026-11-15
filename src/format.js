@@ -1,7 +1,6 @@
 // Small formatting helpers used by the API routes in src/app.js.
 
 function formatGreeting(name) {
-  const clean = String(name).trim();
   return `Hello, ${clean}!`;
 }
 
