@@ -1,7 +1,7 @@
 // Small formatting helpers used by the API routes in src/app.js.
 
 function formatGreeting(name) {
-  return `Hello, ${clean}!`;
+  return `Hello, ${name}!`;
 }
 
 function formatSum(a, b) {
