@@ -60,6 +60,22 @@ code = g["parameters"]["jsCode"]
 assert "$vars.QWEN_BASE_URL" in code, "Get Model URL no longer reads $vars.QWEN_BASE_URL"
 g["parameters"]["jsCode"] = code.replace("$vars.QWEN_BASE_URL", json.dumps(QWEN))
 assert "$vars" not in g["parameters"]["jsCode"], "Get Model URL still references $vars"
+# The local n8n 1.123.81 ships an OpenAI node that only knows versions 2 and 2.1. The shipped workflow
+# uses 2.3 (n8n Cloud), and n8n then refuses to activate the whole workflow ("Cannot read properties of
+# undefined (reading 'execute')"), so the webhook answers 404. In this import copy the fallback becomes a
+# plain HTTP call to OpenAI with no credential: it fails as data, and "Normalize OpenAI Reply" reports it.
+oa = next(n for n in wf["nodes"] if n["name"] == "OpenAI Fallback")
+msgs = [v["content"] for v in oa["parameters"]["responses"]["values"]]
+oa.clear()
+oa.update({
+    "parameters": {"method": "POST", "url": "https://api.openai.com/v1/chat/completions", "sendBody": True,
+                   "specifyBody": "json",
+                   "jsonBody": "={{ JSON.stringify({ model: 'gpt-4.1', messages: ["
+                               "{ role: 'system', content: " + msgs[0][3:-2].strip() + " }, "
+                               "{ role: 'user', content: " + msgs[1][3:-2].strip() + " }] }) }}",
+                   "options": {}},
+    "id": "openai-fallback", "name": "OpenAI Fallback", "type": "n8n-nodes-base.httpRequest",
+    "typeVersion": 4.2, "position": [2100, 540], "onError": "continueRegularOutput"})
 wf["id"] = WF_ID
 wpath = os.path.join(HOME, "workflow_import.json")
 io.open(wpath, "w", encoding="utf-8").write(json.dumps(wf))
