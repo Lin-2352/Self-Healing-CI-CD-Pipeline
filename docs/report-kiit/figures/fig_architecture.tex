@@ -1,0 +1,24 @@
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[every node/.style={font=\sffamily\footnotesize},
+    box/.style={rectangle, rounded corners=3pt, draw=black!70, fill=blue!8, minimum width=3.5cm, minimum height=1.1cm, align=center},
+    gbox/.style={box, fill=green!10}, rbox/.style={box, fill=orange!12}]
+  \node[gbox] (push) at (0,0)     {Developer pushes\\to \texttt{main}};
+  \node[box]  (ci)   at (4.5,0)   {GitHub Actions\\\texttt{build-and-test}};
+  \node[box]  (note) at (9.0,0)   {\texttt{notify} job\\(webhook call)};
+  \node[box]  (n8n)  at (13.5,0)  {n8n workflow\\(26 nodes)};
+  \node[gbox] (api)  at (9.0,-2.6) {GitHub API\\logs, files, branch, PR};
+  \node[rbox] (model) at (13.5,-2.6) {Qwen3.8-27B on Kaggle\\2$\times$T4, via tunnel};
+  \node[box]  (back) at (13.5,-5.2) {\texttt{ci-heal-backend}\\(alternative healer)};
+  \draw[flow] (push) -- (ci);
+  \draw[flow] (ci) -- node[lbl, above]{code failure} (note);
+  \draw[flow] (note) -- node[lbl, above]{POST} (n8n);
+  \draw[flow] (n8n.south) -- node[lbl, right]{prompt} (model.north);
+  \draw[flow] (model.west) -- node[lbl, below]{edits} (api.east);
+  \draw[flow] (n8n.south west) -- node[lbl, above, sloped]{fix PR} (api.north east);
+  \draw[flow, dashed] (back.north) -- (model.south);
+  \draw[flow, dashed] (back.west) -| (api.south);
+\end{tikzpicture}
+\caption{Components of the system and the path of one heal. The dashed arrows show the second healer, which uses the same model endpoint and the same GitHub API.}
+\label{fig:architecture}
+\end{figure}

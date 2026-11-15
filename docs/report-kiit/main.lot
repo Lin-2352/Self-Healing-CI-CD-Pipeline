@@ -1,0 +1,55 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {2.1}{\ignorespaces Gaps in the cited work and the response of this project.}}{9}{table.2.1}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3.1}{\ignorespaces User roles and their use of the system.}}{11}{table.3.1}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces Functional requirements FR-01 to FR-06.}}{13}{table.3.2}%
+\contentsline {table}{\numberline {3.3}{\ignorespaces Functional requirements FR-07 to FR-12.}}{14}{table.3.3}%
+\contentsline {table}{\numberline {3.4}{\ignorespaces Non-functional requirements NFR-01 to NFR-06.}}{15}{table.3.4}%
+\contentsline {table}{\numberline {3.5}{\ignorespaces Non-functional requirements NFR-07 to NFR-12.}}{16}{table.3.5}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {4.1}{Components}}{19}{table.4.1}%
+\contentsline {table}{\numberline {4.2}{Data flow of one heal}}{22}{table.4.2}%
+\contentsline {table}{\numberline {4.3}{Trust boundaries and secrets}}{22}{table.4.3}%
+\contentsline {table}{\numberline {4.4}{Trust boundaries and secrets}}{23}{table.4.4}%
+\contentsline {table}{\numberline {4.5}{SEARCH/\allowbreak {}REPLACE edits instead of whole files}}{24}{table.4.5}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{Step 1: decide}}{30}{table.5.1}%
+\contentsline {table}{\numberline {5.2}{The demo application}}{32}{table.5.2}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {7.1}{Server flags}}{42}{table.7.1}%
+\contentsline {table}{\numberline {7.2}{Boot-time self-check}}{45}{table.7.2}%
+\contentsline {table}{\numberline {7.3}{Measured speed}}{48}{table.7.3}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {8.1}{Failure categories}}{52}{table.8.1}%
+\contentsline {table}{\numberline {8.2}{Thresholds and attempt budgets}}{52}{table.8.2}%
+\contentsline {table}{\numberline {8.3}{Database tables}}{55}{table.8.3}%
+\contentsline {table}{\numberline {8.4}{Measured replay on the endpoint}}{56}{table.8.4}%
+\contentsline {table}{\numberline {8.5}{Known limitations from an audit}}{59}{table.8.5}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {9.1}{Model choice sweep}}{62}{table.9.1}%
+\contentsline {table}{\numberline {9.2}{Speed levers}}{63}{table.9.2}%
+\contentsline {table}{\numberline {9.3}{Speed and quality of alternative quantizations}}{64}{table.9.3}%
+\contentsline {table}{\numberline {9.4}{Diff format comparison}}{65}{table.9.4}%
+\contentsline {table}{\numberline {9.5}{Shipped-format quality, with and without the CI log and thinking}}{66}{table.9.5}%
+\contentsline {table}{\numberline {9.6}{Multi-file healing}}{67}{table.9.6}%
+\contentsline {table}{\numberline {9.7}{Four-model bake-off}}{68}{table.9.7}%
+\contentsline {table}{\numberline {9.8}{Live end-to-end rounds}}{70}{table.9.8}%
+\contentsline {table}{\numberline {9.9}{The backend on the Kaggle endpoint}}{71}{table.9.9}%
+\contentsline {table}{\numberline {9.10}{Limits of the evaluation}}{74}{table.9.10}%
+\contentsline {table}{\numberline {9.11}{What happened}}{77}{table.9.11}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {10.1}{Credentials}}{78}{table.10.1}%
+\contentsline {table}{\numberline {10.2}{Layer 2: node suites and eval scorers}}{82}{table.10.2}%
+\contentsline {table}{\numberline {10.3}{What runs where}}{84}{table.10.3}%
+\contentsline {table}{\numberline {10.4}{Troubleshooting}}{85}{table.10.4}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {11.1}{\ignorespaces The four test layers and their last recorded results.}}{91}{table.11.1}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {12.1}{\ignorespaces Traceability of the objectives of Chapter~1.}}{95}{table.12.1}%
+\contentsline {table}{\numberline {12.2}{Experiments that did not work}}{97}{table.12.2}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {A.1}{Layout}}{101}{table.A.1}%
+\contentsline {table}{\numberline {A.2}{Documentation}}{101}{table.A.2}%
+\contentsline {table}{\numberline {A.3}{Evidence index}}{102}{table.A.3}%

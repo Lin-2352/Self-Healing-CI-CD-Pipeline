@@ -1,0 +1,170 @@
+\chapter{Standards Adopted}
+
+This chapter lists the standards that the project follows and, for each one, the file or check that keeps it in force. A standard that is only written in a README is called a convention here, and the text says so. Where the repository has no enforcement, the text says that as well.
+
+\section{Design Standards}
+
+\subsection{Webhook and REST conventions}
+
+\textbf{Standard.} A webhook must authenticate its sender before doing any work, answer quickly and do the real work afterwards. Status codes carry the result: 401 for a wrong secret, 403 for a repository that is not allowed, 202 for work that was accepted or deliberately ignored, and 200 for a GitHub \texttt{ping}. The read routes of the API use \texttt{GET}.
+
+\textbf{Where it is enforced.}
+\begin{itemize}
+  \item \textbf{Backend webhooks:} \texttt{POST /webhooks/github} checks the \texttt{X-Hub-Signature-256} HMAC over the raw body, and \texttt{POST /webhooks/n8n} compares the header \texttt{X-N8N-Token}. A repeated delivery returns \texttt{duplicate}, and a background task does the work after the 202. The code is in \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}api/\allowbreak{}webhooks.py} and \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}security.py}, and the tests are \texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}webhooks.py} and \texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}security.py}.
+  \item \textbf{n8n webhooks:} both webhooks use header authentication on \texttt{X-Webhook-Secret}, and the first one answers GitHub with the response mode \texttt{onReceived} before the work starts. \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}workflow\_\allowbreak{}structure.py} checks the wiring of the shipped JSON.
+  \item \textbf{Read API:} \texttt{/failures}, \texttt{/decisions} and \texttt{/stats/...} return typed pydantic models and need \texttt{API\_TOKEN} outside \texttt{dev} (source: \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}api/\allowbreak{}failures.py}, \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}api/\allowbreak{}stats.py}).
+\end{itemize}
+
+\subsection{Exit-code contract between tests and workflow}
+
+\textbf{Standard.} The test program reports why it failed through its exit code, in the style of the sysexits convention: 0 for success, 1 for a code failure and 75 (\texttt{EX\_TEMPFAIL}) for an environment problem. The log line starts with \texttt{CODE\_FAILURE} or \texttt{INFRA\_FAILURE}.
+
+\textbf{Where it is enforced.} \texttt{demo-app/\allowbreak{}test.js} and \texttt{demo-app/\allowbreak{}test/\allowbreak{}api.test.js} follow the contract, and the step ``Run tests'' in \texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml} maps the codes to \texttt{none}, \texttt{infra} and \texttt{code}. It was checked on one machine that \texttt{npm test} exits with 75 when port 5000 is already taken. No automated test covers the workflow file, which is exercised only by pushing to GitHub.
+
+\subsection{Twelve-factor style configuration}
+
+\textbf{Standard.} Configuration that differs between deployments lives in the environment and not in the code, and secrets are never committed. The project follows this in the spirit of the twelve-factor method. The repository does not cite that method, so the label is ours.
+
+\textbf{Where it is enforced.}
+\begin{itemize}
+  \item \textbf{Backend settings:} one \texttt{Settings} class reads environment variables and a \texttt{.env} file, and each threshold can be changed by a variable of the same name (\texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}config.py}). \texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}env\_\allowbreak{}example.py} checks that \texttt{ci-heal-backend/\allowbreak{}.env.example} keeps the same keys as \texttt{Settings}.
+  \item \textbf{Safe defaults:} \texttt{DRY\_RUN} is true by default, and \texttt{ALLOWED\_REPOS} is empty by default, which allows nothing. Outside \texttt{dev}, an empty or placeholder secret stops the start (\texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}security.py}). The Dockerfile sets \texttt{APP\_ENV=prod}.
+  \item \textbf{Secrets outside the repository:} \texttt{.gitignore} lists \texttt{*.env} and \texttt{secrets.json}, and the runtime secrets of the local setup sit in a folder outside the repository.
+  \item \textbf{Workflow variables:} the model address is stored through a webhook and read before each model call. The variable \texttt{QWEN\_BASE\_URL} is the fallback (\texttt{tools/\allowbreak{}nodes/\allowbreak{}get\_\allowbreak{}model\_\allowbreak{}url.js}).
+\end{itemize}
+
+\subsection{Least privilege for tokens and paths}
+
+\textbf{Standard.} Each component gets the access it needs and no more, and a credential is sent only to the host that needs it.
+
+\textbf{Where it is enforced.}
+\begin{itemize}
+  \item \textbf{Workflow permissions:} the notify job declares \texttt{contents: read}, \texttt{pull-requests: write} and \texttt{issues: write} (\texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml}).
+  \item \textbf{Log download:} the GitHub token goes to the API host and not to the storage host that the log redirect points to. Two nodes do this, and the real-engine rig asserts it (\texttt{tools/\allowbreak{}n8n\_\allowbreak{}rig/\allowbreak{}drive\_\allowbreak{}full.py}, output in \texttt{eval/\allowbreak{}runs/\allowbreak{}testall/\allowbreak{}n8n\_\allowbreak{}rig.txt}).
+  \item \textbf{Backend:} a patch may only touch a file that was shown to the model, never \texttt{.git/}, \texttt{.env*} or, by default, \texttt{.github/workflows/}. The GitHub client refuses any write to a branch that is not \texttt{ai-fix-}. Both rules are in \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}core/\allowbreak{}patch\_\allowbreak{}apply.py} and \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}services/\allowbreak{}github\_\allowbreak{}client.py}.
+\end{itemize}
+
+The standard has known gaps. The model endpoint key is a constant in a committed file, and the audit notes that a fix may still change a build entry point such as \texttt{package.json}.
+
+\subsection{OpenAI-compatible chat API}
+
+\textbf{Standard.} Every model, hosted or local, is reached through the same interface: \texttt{POST /v1/chat/completions} with a bearer key and \texttt{GET /v1/models} for readiness. The reasoning switch travels as a request field, so the caller can pick a model by URL, key and name only.
+
+\textbf{Where it is enforced.} The contract is written in \texttt{ci-heal-backend/\allowbreak{}docs/\allowbreak{}LLM\_\allowbreak{}CONTRACT.md}. The client in \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}llm/\allowbreak{}http\_\allowbreak{}client.py} implements it and \texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}llm.py} tests it. The endpoint starts \texttt{llama-server} with \texttt{--api-key} (source: \texttt{docs/\allowbreak{}architecture/\allowbreak{}kaggle-endpoint.md}), and the classifier and the fixer each have their own URL, key and model name in \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}config.py}. The n8n workflow sends the same kind of request and rebuilds the reply from the stream in \texttt{tools/\allowbreak{}nodes/\allowbreak{}assemble\_\allowbreak{}model\_\allowbreak{}reply.js}.
+
+\subsection{Semantic branch naming}
+
+\textbf{Standard.} Every branch the healer creates starts with \texttt{ai-fix-}. The prefix tells people which branches belong to the machine, and it lets the workflow tell a heal pull request from a person's pull request.
+
+\textbf{Where it is enforced.}
+\begin{itemize}
+  \item The notify job runs for a pull request only when \texttt{startsWith(github.head\_ref, 'ai-fix-')} (\texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml}).
+  \item In n8n, a branch named \texttt{main} or \texttt{master} chosen by the model is replaced by an \texttt{ai-fix-} name (\texttt{tools/\allowbreak{}nodes/\allowbreak{}extract\_\allowbreak{}ai\_\allowbreak{}response.js}, tested in \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}extract\_\allowbreak{}node.py}).
+  \item In the backend, the name is built as \texttt{ai-fix-<category>-<sha7>} and never taken from the model. The GitHub client refuses a ref that does not start with \texttt{ai-fix-}, and the refusal is an exception, so it survives \texttt{python -O} (\texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}services/\allowbreak{}github\_\allowbreak{}client.py}, \texttt{\_refuse}; \texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}github.py}).
+\end{itemize}
+
+\section{Coding Standards}
+
+\subsection{Lint and format settings}
+
+\textbf{Standard.} The backend is linted and formatted with ruff. The settings in \texttt{ci-heal-backend/\allowbreak{}pyproject.toml} are a line length of 100, the target \texttt{py311}, and the rule sets \texttt{E}, \texttt{F}, \texttt{W}, \texttt{I}, \texttt{UP}, \texttt{B}, \texttt{SIM} and \texttt{D}. The \texttt{D} rules use the Google docstring convention, and the file's comment calls them the project rule that every function has a docstring. Test files are exempt from \texttt{D}, and the \texttt{scripts} folder is exempt from \texttt{E402}.
+
+\textbf{Where it is enforced.} By running \texttt{ruff check .} and \texttt{ruff format --check .} in \texttt{ci-heal-backend/\allowbreak{}}. Both were clean when the audit fixes were made, on 2026-11-15 (source: \texttt{docs/\allowbreak{}results/\allowbreak{}BACKEND\_\allowbreak{}AUDIT.md}). No CI job in the repository runs them, so the check depends on the developer running it. The only workflow file is \texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml}, which tests the demo app.
+
+\subsection{Typing and data validation}
+
+\textbf{Standard.} Functions carry type annotations, and data that crosses a boundary is validated by a pydantic model, so that bad input is rejected where it enters.
+
+\textbf{Where it is enforced.} The settings, the model replies and the API answers are pydantic models (\texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}config.py}, \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}schemas/\allowbreak{}fix.py}). The fix schema rejects extra keys, and the prompt builder refuses text that is not of the \texttt{RedactedText} type. \texttt{ci-heal-backend/\allowbreak{}pyproject.toml} lists only pytest, respx and ruff as development tools, so there is no static type checker, and the annotations are not verified by a tool.
+
+\subsection{Generated files and the byte-identical check}
+
+\textbf{Standard.} A generated file is never edited by hand. Its source is edited and the file is regenerated, and a check proves that the two still match.
+
+\textbf{Where it is enforced.}
+\begin{itemize}
+  \item \textbf{Workflow JSON:} \texttt{n8n/\allowbreak{}self\_\allowbreak{}healing\_\allowbreak{}pipeline.json} is written by \texttt{tools/\allowbreak{}gen\_\allowbreak{}n8n.py} from the node bodies in \texttt{tools/\allowbreak{}nodes/\allowbreak{}}. The command \texttt{python tools/gen\_n8n.py --check} regenerates the JSON in memory and compares it byte for byte with the shipped copy. \texttt{run\_\allowbreak{}tests.py} runs it as one of its checks.
+  \item \textbf{Endpoint notebook:} the file that is uploaded to Kaggle is built from \texttt{kaggle/\allowbreak{}endpoint/\allowbreak{}deploy\_\allowbreak{}src.py} and one entry of \texttt{kaggle/\allowbreak{}endpoint/\allowbreak{}models.json} by \texttt{kaggle/\allowbreak{}tools/\allowbreak{}build\_\allowbreak{}endpoint.py}.
+  \item \textbf{Documentation:} \texttt{tools/\allowbreak{}check\_\allowbreak{}docs.py} checks that relative links resolve, that inline paths exist, that a short list of overused words and the em dash are absent, and that no token prefix has leaked.
+\end{itemize}
+
+\subsection{Node bodies as plain files}
+
+\textbf{Standard.} Logic of the workflow lives in plain JavaScript files, not in text pasted into the n8n editor, so that it can be read, diffed and tested outside n8n.
+
+\textbf{Where it is enforced.} The ten files in \texttt{tools/\allowbreak{}nodes/\allowbreak{}} are the only source of the Code nodes. \texttt{tools/\allowbreak{}heal\_\allowbreak{}harness.py} runs them under Node with a fake n8n context, and the suites in \texttt{tools/\allowbreak{}tests/\allowbreak{}} call it.
+
+\subsection{Commit messages}
+
+\textbf{Standard.} A commit message is one short sentence in the imperative mood and sentence case, without a type prefix. When a change affects only one component, the component name comes first, as in ``ci-heal-backend: reject non-ASCII auth headers, unfinished runs and fork runs''. Commits made by the healer end with a \texttt{Heal-Attempt: N} trailer, which the notify job parses.
+
+\textbf{Where it is enforced.} The style is visible in the commit history of the repository. No hook or CI check for it was found, so for people it is a convention. The healer's trailer is enforced by code: \texttt{tools/\allowbreak{}nodes/\allowbreak{}extract\_\allowbreak{}ai\_\allowbreak{}response.js} writes it, and the \texttt{Decide} step in \texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml} reads it with a fixed pattern.
+
+\subsection{Line-ending policy}
+
+\textbf{Standard.} Files are stored exactly as they are on disk, and no tool converts line endings. Some files are byte-exact contracts: the workflow JSON uses CRLF, while golden files and fixtures use LF. A conversion would change their bytes and break the generator check and the scorers.
+
+\textbf{Where it is enforced.} \texttt{.gitattributes} contains the single rule \texttt{* -text}, which turns off conversion for every path. The generator check above fails if the workflow JSON drifts.
+
+\subsection{Checks before publishing}
+
+\textbf{Standard.} Before each push, the tree is searched for the token prefixes \texttt{ghp\_} and \texttt{github\_pat\_}, for \texttt{hf\_}, for the webhook secret value, and for \texttt{.env} and \texttt{secrets.json} files. A match inside a test that holds a deliberately fake token is accepted after reading it. This is a manual step, not an automated gate.
+
+\section{Testing Standards}
+
+\subsection{Test layers}
+
+\textbf{Standard.} Checks run from fast and local to slow and live, and the first three layers need no GPU and write nothing to GitHub.
+
+\begin{table}[!htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Layer} & \textbf{What runs} & \textbf{Recorded result} \\
+\midrule
+1, backend unit tests & pytest with a mock model and a mocked GitHub client & 157 tests before the audit fixes and 205 after, all passing, with ruff clean (source: \texttt{docs/\allowbreak{}results/\allowbreak{}BACKEND\_\allowbreak{}AUDIT.md}) \\
+2, node suites and scorers & \texttt{run\_\allowbreak{}tests.py}: the suites in \texttt{tools/\allowbreak{}tests/\allowbreak{}}, the scorer self-tests in \texttt{eval/\allowbreak{}} and the generator check & all 13 checks passed, 12 without the rig and 13 with it (source: \texttt{eval/\allowbreak{}runs/\allowbreak{}testall/\allowbreak{}}) \\
+3, real n8n engine & \texttt{tools/\allowbreak{}n8n\_\allowbreak{}rig/\allowbreak{}} imports the shipped nodes into n8n 1.x and runs them against a mock of GitHub and the model & 18 passing scenarios, no failures (source: \texttt{eval/\allowbreak{}runs/\allowbreak{}testall/\allowbreak{}n8n\_\allowbreak{}rig.txt}) \\
+4, live runs & a deliberately broken commit pushed to a real repository, with the real model & five of five healed in Round 2 (source: \texttt{docs/\allowbreak{}results/\allowbreak{}GOLIVE\_\allowbreak{}RESULTS.md}) \\
+\bottomrule
+\end{tabularx}
+\caption{The four test layers and their last recorded results.}
+\label{tab:layers}
+\end{table}
+
+\textbf{Where it is enforced.} \texttt{python run\_tests.py} exits with code 0 only if every check passes, and it saves each check's output under \texttt{eval/\allowbreak{}runs/\allowbreak{}testall/\allowbreak{}}. Layer 4 is run by hand, because it writes to GitHub and uses GPU quota. A finding in the backend audit is fixed by first writing a test that fails and then changing the code.
+
+\subsection{Decision rules fixed before the data}
+
+\textbf{Standard.} For the later studies, the criterion for ``ship'' or ``replace'' is written down before any GPU time is spent, and where possible it is coded into the scorer. A result that misses the rule is reported as a miss.
+
+\textbf{Where it is enforced.} The multi-file study set a bar of 12 of 18 for the first pass, measured 9 of 18, and reported that as a miss (source: \texttt{docs/\allowbreak{}results/\allowbreak{}MULTIFILE\_\allowbreak{}EVAL.md}). The decision rule of the four-model comparison is part of the scorer, and \texttt{eval/\allowbreak{}test\_\allowbreak{}bakeoff\_\allowbreak{}eval.py} tests it with 52 assertions. The rules and results are in the files under \texttt{docs/\allowbreak{}results/\allowbreak{}}.
+
+\subsection{Scorer self-tests}
+
+\textbf{Standard.} A scorer is tested before its output is trusted. A case must be a real test, and a verdict must be reproducible from the stored raw reply.
+
+\textbf{Where it is enforced.}
+\begin{itemize}
+  \item \texttt{eval/\allowbreak{}test\_\allowbreak{}shipped\_\allowbreak{}eval.py} has 49 passing assertions, including 15 of 15 real captured replies.
+  \item \texttt{eval/\allowbreak{}check\_\allowbreak{}multifile\_\allowbreak{}cases.py} checks that, for every multi-file case, the golden code passes and the broken code fails (7 assertions).
+  \item \texttt{eval/\allowbreak{}test\_\allowbreak{}multifile\_\allowbreak{}eval.py} has 13 assertions on the scoring of the multi-file study.
+  \item The scripts \texttt{eval/\allowbreak{}rescore\_\allowbreak{}shipped.py}, \texttt{eval/\allowbreak{}rescore\_\allowbreak{}multifile.py} and \texttt{eval/\allowbreak{}rescore\_\allowbreak{}bakeoff.py} recompute every verdict from the raw text. They reproduced 84 of 84, 57 of 57 and 232 of 232 calls without disagreement (source: \texttt{docs/\allowbreak{}results/\allowbreak{}SHIPPED\_\allowbreak{}QUALITY\_\allowbreak{}EVAL.md}, \texttt{docs/\allowbreak{}results/\allowbreak{}MULTIFILE\_\allowbreak{}EVAL.md}, \texttt{docs/\allowbreak{}results/\allowbreak{}MODEL\_\allowbreak{}BAKEOFF.md}).
+\end{itemize}
+
+\subsection{The real-engine rig}
+
+\textbf{Standard.} Node logic is tested first outside n8n, because that is fast and needs no GPU, and then inside a real n8n engine, because the first kind of test cannot reproduce n8n's own behaviour. The harness resolves \texttt{\$('Node')} lookups that the n8n sandbox does not resolve for Code nodes, so a passing harness run does not prove that an accessor works (source: the docstring of \texttt{tools/\allowbreak{}heal\_\allowbreak{}harness.py}).
+
+\textbf{Where it is enforced.} \texttt{python run\_tests.py --rig} runs the 18 scenarios in \texttt{tools/\allowbreak{}n8n\_\allowbreak{}rig/\allowbreak{}drive\_\allowbreak{}full.py}, using nodes copied from the shipped workflow with only the host names changed and the credentials removed. The scenarios cover the redirect and token rule, the retry with the trailer \texttt{Heal-Attempt: 2}, each rejection path, a 524 with and without a working fallback, a 404 log and the \texttt{infra} refusal. The rig found a real defect: the first log download design sent the GitHub token to the storage host (source: \texttt{docs/\allowbreak{}results/\allowbreak{}GOLIVE\_\allowbreak{}RESULTS.md}, Round 2).
+
+\subsection{Judging a feature by its effect}
+
+\textbf{Standard.} A log line that says a feature is on is not proof. The check must observe the result of the feature. Wording changes in logs twice made a disabled feature look enabled, which is why this rule exists.
+
+\textbf{Where it is enforced.} The endpoint's thinking switch is checked by asking the model two questions and looking for reasoning in the reply (\texttt{kaggle/\allowbreak{}endpoint/\allowbreak{}deploy\_\allowbreak{}src.py}, \texttt{thinking\_check}).
+
+\subsection{What the standards do not cover}
+
+Some parts have no automated test: the endpoint script, which runs only on a Kaggle GPU, the GitHub write steps of the workflow, the backend with \texttt{DRY\_RUN=false} against real GitHub, the launcher scripts and \texttt{demo-ci.yml} itself. For these the standard is the live run.

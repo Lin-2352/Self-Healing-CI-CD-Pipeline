@@ -1,0 +1,32 @@
+\chapter{Conclusion and Future Scope}
+
+\section{Summary of the Project}
+We built a pipeline that reacts to a failing GitHub Actions run by reading its log, asking a self-hosted language model for a fix, and opening a pull request that CI then judges. The parts are a CI workflow with a notify job, an n8n workflow of 26 nodes, a Qwen3.8-27B endpoint on a free Kaggle notebook with two T4 GPUs, a second healer written as a FastAPI service, a set of launcher scripts, and an evaluation harness with its own tests.
+
+On the demo repository the live rounds healed the five injected single-file breakages in five of five attempts, with a median of 42 s from push to fix pull request in the second round (Chapter~9). With thinking off, the production setting for the first attempt, the model healed 12 of 18 hard single-file calls; with thinking on it healed 18 of 18 at about four times the time, which is why the retry uses it. The multi-file study missed its own bar (9 of 18 against 12), and the report says so. The local checks pass: 13 of 13 in \texttt{run\_tests.py --rig}, 205 backend tests, and a clean linter run (Chapter~10). A review of the backend found 21 issues; four were fixed with tests and 17 remain open and are listed.
+
+\section{Objectives Traceability Matrix}
+Table~\ref{tab:traceability} traces each objective from Chapter~1 to where it is implemented and where it is evidenced.
+
+\begin{table}[!htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.0cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{2.6cm}}
+\toprule
+\textbf{ID} & \textbf{Implemented in} & \textbf{Evidence} & \textbf{Status} \\
+\midrule
+O1 & \texttt{failure\_kind} step in \texttt{demo-ci.yml}; refusal in \texttt{build\_ai\_prompt.js} & Real-engine rig probe for \texttt{failure\_kind=infra}; Chapters~5 and~10 & Met \\
+O2 & Nodes from \texttt{Fetch Job Logs} to \texttt{Build AI Prompt} & \texttt{test\_build\_prompt}, \texttt{test\_multifile}, rig scenarios; Chapter~6 & Met \\
+O3 & \texttt{Qwen3.8 Analyze}, \texttt{Extract AI Response}; endpoint in \texttt{deploy\_src.py} & Quality studies in Chapter~9; \texttt{test\_extract\_node} & Met for single-file bugs; multi-file partly (9 of 18 first try) \\
+O4 & \texttt{Create Branch} to \texttt{Open Pull Request}; branch rule in \texttt{extract\_ai\_response.js} & Recorded run, Chapter~9 & Met \\
+O5 & Attempt counter in the notify job and the \texttt{Heal-Attempt} trailer & Live round 3 in Chapter~9; rig retry scenarios & Met; cap enforced in the notify job only \\
+O6 & \texttt{ci-heal-backend/} & 205 tests; six-fixture replay on the live endpoint; Chapter~8 & Met in dry-run; never run with writes enabled against real GitHub \\
+O7 & \texttt{eval/}, \texttt{docs/results/} & Chapter~9; rescoring scripts agree 84/84, 57/57 and 232/232 & Met, with small case counts \\
+O8 & \texttt{launcher/}, \texttt{tools/}, secrets under \texttt{\%LOCALAPPDATA\%} & Secret scan; Chapter~10 & Met; the shared secret and the endpoint key need rotation before sharing \\
+\bottomrule
+\end{tabularx}
+\caption{Traceability of the objectives of Chapter~1.}
+\label{tab:traceability}
+\end{table}
+
+\input{chapters/12a_limits_future}

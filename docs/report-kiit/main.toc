@@ -1,0 +1,173 @@
+\contentsline {chapter}{Certificate}{ii}{section*.1}%
+\contentsline {chapter}{Declaration}{iii}{section*.2}%
+\contentsline {chapter}{Acknowledgement}{iv}{section*.3}%
+\contentsline {chapter}{Abstract}{v}{section*.4}%
+\contentsline {chapter}{Project Contributors}{vi}{section*.5}%
+\contentsline {chapter}{Table of Contents}{vii}{section*.6}%
+\contentsline {chapter}{List of Figures}{xiii}{section*.8}%
+\contentsline {chapter}{List of Tables}{xiv}{section*.10}%
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Overview and Background}{1}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Problem Statement}{2}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Objectives of the System}{3}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Scope and Limitations}{4}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}In scope}{4}{subsection.1.4.1}%
+\contentsline {subsection}{\numberline {1.4.2}Limitations}{4}{subsection.1.4.2}%
+\contentsline {section}{\numberline {1.5}Organisation of the Report}{5}{section.1.5}%
+\contentsline {chapter}{\numberline {2}Literature Review}{6}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Introduction}{6}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Continuous Integration and Build Failures}{6}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Automated Program Repair}{7}{section.2.3}%
+\contentsline {section}{\numberline {2.4}LLM-Based Issue Resolution}{7}{section.2.4}%
+\contentsline {section}{\numberline {2.5}Self-Healing and Autonomic Computing}{8}{section.2.5}%
+\contentsline {section}{\numberline {2.6}Serving a Large Model on Limited Hardware}{8}{section.2.6}%
+\contentsline {section}{\numberline {2.7}Reasoning Mode}{8}{section.2.7}%
+\contentsline {section}{\numberline {2.8}Security of LLM-Integrated Applications}{9}{section.2.8}%
+\contentsline {section}{\numberline {2.9}Summary of Research Gaps}{9}{section.2.9}%
+\contentsline {chapter}{\numberline {3}System Requirements Specification}{10}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Introduction and Purpose}{10}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Target Audience and User Roles}{10}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Functional Requirements}{12}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Non-Functional Requirements}{12}{section.3.4}%
+\contentsline {section}{\numberline {3.5}Use Cases}{12}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}UC-1: Heal a failure on main}{12}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}UC-2: Retry on the heal pull request}{17}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.3}UC-3: Failure comment}{17}{subsection.3.5.3}%
+\contentsline {chapter}{\numberline {4}System Architecture}{18}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Components}{18}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Data flow of one heal}{20}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Trust boundaries and secrets}{22}{section.4.3}%
+\contentsline {section}{\numberline {4.4}One healer per repository}{23}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Design decisions}{24}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}SEARCH/\allowbreak {}REPLACE edits instead of whole files}{24}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Streamed model calls}{25}{subsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.5.3}Thinking off first, on for retries}{25}{subsection.4.5.3}%
+\contentsline {subsection}{\numberline {4.5.4}The failure\_\allowbreak {}kind gate}{25}{subsection.4.5.4}%
+\contentsline {subsection}{\numberline {4.5.5}Log redirect handling}{26}{subsection.4.5.5}%
+\contentsline {subsection}{\numberline {4.5.6}Model address stored through a webhook}{26}{subsection.4.5.6}%
+\contentsline {subsection}{\numberline {4.5.7}The attempt counter lives in the commit}{26}{subsection.4.5.7}%
+\contentsline {chapter}{\numberline {5}GitHub Actions and the Notify Job}{27}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Triggers}{27}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Jobs}{28}{section.5.2}%
+\contentsline {section}{\numberline {5.3}The build-and-test job}{28}{section.5.3}%
+\contentsline {section}{\numberline {5.4}The notify job}{29}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}When it runs}{29}{subsection.5.4.1}%
+\contentsline {subsection}{\numberline {5.4.2}Step 1: decide}{30}{subsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.4.3}Step 2: trigger the webhook}{30}{subsection.5.4.3}%
+\contentsline {subsection}{\numberline {5.4.4}Step 3: give up at the cap}{31}{subsection.5.4.4}%
+\contentsline {section}{\numberline {5.5}The demo application}{31}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Why the heal PR gets its own CI run}{32}{section.5.6}%
+\contentsline {chapter}{\numberline {6}The n8n Healing Workflow}{34}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Stage 1: receive}{34}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Stage 2: gather evidence}{34}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Stage 3: build the prompt}{35}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Stage 4: call the model, with a fallback}{36}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Stage 5: extract the fix}{36}{section.6.5}%
+\contentsline {section}{\numberline {6.6}Stage 6: write the pull request}{37}{section.6.6}%
+\contentsline {section}{\numberline {6.7}Stage 7: report failures}{38}{section.6.7}%
+\contentsline {section}{\numberline {6.8}Retry behaviour}{38}{section.6.8}%
+\contentsline {section}{\numberline {6.9}Idempotent re-runs}{39}{section.6.9}%
+\contentsline {chapter}{\numberline {7}The Model Endpoint}{40}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Role of the service}{40}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Hardware}{40}{section.7.2}%
+\contentsline {section}{\numberline {7.3}The server binary}{41}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Model file and quantization}{41}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Server flags}{42}{section.7.5}%
+\contentsline {section}{\numberline {7.6}Context ladder}{43}{section.7.6}%
+\contentsline {section}{\numberline {7.7}Thinking default}{44}{section.7.7}%
+\contentsline {section}{\numberline {7.8}Boot-time self-check}{44}{section.7.8}%
+\contentsline {section}{\numberline {7.9}Tunnel and changing address}{45}{section.7.9}%
+\contentsline {section}{\numberline {7.10}Session window}{46}{section.7.10}%
+\contentsline {section}{\numberline {7.11}How the address reaches n8n and the backend}{46}{section.7.11}%
+\contentsline {section}{\numberline {7.12}Quota and stopping}{47}{section.7.12}%
+\contentsline {section}{\numberline {7.13}Measured speed}{47}{section.7.13}%
+\contentsline {chapter}{\numberline {8}The ci-heal-backend Service}{49}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Purpose and difference from the n8n healer}{49}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Request flow}{50}{section.8.2}%
+\contentsline {section}{\numberline {8.3}Failure categories}{51}{section.8.3}%
+\contentsline {section}{\numberline {8.4}Thresholds and attempt budgets}{52}{section.8.4}%
+\contentsline {section}{\numberline {8.5}Safety rules}{53}{section.8.5}%
+\contentsline {section}{\numberline {8.6}The LLM contract and the HTTP client}{54}{section.8.6}%
+\contentsline {section}{\numberline {8.7}Database tables}{54}{section.8.7}%
+\contentsline {section}{\numberline {8.8}Wiring to the Kaggle endpoint}{55}{section.8.8}%
+\contentsline {section}{\numberline {8.9}Measured replay on the endpoint}{55}{section.8.9}%
+\contentsline {section}{\numberline {8.10}Tests}{56}{section.8.10}%
+\contentsline {section}{\numberline {8.11}Known limitations from an audit}{56}{section.8.11}%
+\contentsline {chapter}{\numberline {9}Evaluation and Results}{60}{chapter.9}%
+\contentsline {section}{\numberline {9.1}How to read this chapter}{60}{section.9.1}%
+\contentsline {section}{\numberline {9.2}The evaluation harness}{60}{section.9.2}%
+\contentsline {section}{\numberline {9.3}Model choice sweep}{62}{section.9.3}%
+\contentsline {section}{\numberline {9.4}Speed levers}{63}{section.9.4}%
+\contentsline {section}{\numberline {9.5}Speed and quality of alternative quantizations}{64}{section.9.5}%
+\contentsline {section}{\numberline {9.6}Diff format comparison}{65}{section.9.6}%
+\contentsline {section}{\numberline {9.7}Shipped-format quality, with and without the CI log and thinking}{66}{section.9.7}%
+\contentsline {section}{\numberline {9.8}Multi-file healing}{67}{section.9.8}%
+\contentsline {section}{\numberline {9.9}Four-model bake-off}{68}{section.9.9}%
+\contentsline {section}{\numberline {9.10}Live end-to-end rounds}{69}{section.9.10}%
+\contentsline {section}{\numberline {9.11}The backend on the Kaggle endpoint}{71}{section.9.11}%
+\contentsline {section}{\numberline {9.12}Limits of the evaluation}{72}{section.9.12}%
+\contentsline {section}{\numberline {9.13}A Recorded Live Run}{74}{section.9.13}%
+\contentsline {subsection}{\numberline {9.13.1}Setup of the run}{74}{subsection.9.13.1}%
+\contentsline {subsection}{\numberline {9.13.2}What happened}{75}{subsection.9.13.2}%
+\contentsline {subsection}{\numberline {9.13.3}What the run does not show}{77}{subsection.9.13.3}%
+\contentsline {subsection}{\numberline {9.13.4}A run that could not be repeated}{77}{subsection.9.13.4}%
+\contentsline {chapter}{\numberline {10}Security, Testing and Deployment}{78}{chapter.10}%
+\contentsline {section}{\numberline {10.1}Security}{78}{section.10.1}%
+\contentsline {subsection}{\numberline {10.1.1}Credentials}{78}{subsection.10.1.1}%
+\contentsline {subsection}{\numberline {10.1.2}The webhooks}{79}{subsection.10.1.2}%
+\contentsline {subsection}{\numberline {10.1.3}The log redirect}{79}{subsection.10.1.3}%
+\contentsline {subsection}{\numberline {10.1.4}Treating the model as untrusted}{79}{subsection.10.1.4}%
+\contentsline {subsection}{\numberline {10.1.5}Known weaknesses}{80}{subsection.10.1.5}%
+\contentsline {subsection}{\numberline {10.1.6}Checks before publishing}{80}{subsection.10.1.6}%
+\contentsline {section}{\numberline {10.2}Testing and Verification}{81}{section.10.2}%
+\contentsline {subsection}{\numberline {10.2.1}Layer 1: backend unit tests}{81}{subsection.10.2.1}%
+\contentsline {subsection}{\numberline {10.2.2}Layer 2: node suites and eval scorers}{81}{subsection.10.2.2}%
+\contentsline {subsection}{\numberline {10.2.3}Layer 3: a real n8n engine}{82}{subsection.10.2.3}%
+\contentsline {subsection}{\numberline {10.2.4}Layer 4: live runs}{83}{subsection.10.2.4}%
+\contentsline {subsection}{\numberline {10.2.5}Audit}{83}{subsection.10.2.5}%
+\contentsline {subsection}{\numberline {10.2.6}What is not tested}{83}{subsection.10.2.6}%
+\contentsline {section}{\numberline {10.3}Deployment and Operation}{83}{section.10.3}%
+\contentsline {subsection}{\numberline {10.3.1}What runs where}{84}{subsection.10.3.1}%
+\contentsline {subsection}{\numberline {10.3.2}The live demo in order}{84}{subsection.10.3.2}%
+\contentsline {subsection}{\numberline {10.3.3}Cost and limits}{85}{subsection.10.3.3}%
+\contentsline {subsection}{\numberline {10.3.4}Troubleshooting}{85}{subsection.10.3.4}%
+\contentsline {chapter}{\numberline {11}Standards Adopted}{86}{chapter.11}%
+\contentsline {section}{\numberline {11.1}Design Standards}{86}{section.11.1}%
+\contentsline {subsection}{\numberline {11.1.1}Webhook and REST conventions}{86}{subsection.11.1.1}%
+\contentsline {subsection}{\numberline {11.1.2}Exit-code contract between tests and workflow}{87}{subsection.11.1.2}%
+\contentsline {subsection}{\numberline {11.1.3}Twelve-factor style configuration}{87}{subsection.11.1.3}%
+\contentsline {subsection}{\numberline {11.1.4}Least privilege for tokens and paths}{87}{subsection.11.1.4}%
+\contentsline {subsection}{\numberline {11.1.5}OpenAI-compatible chat API}{88}{subsection.11.1.5}%
+\contentsline {subsection}{\numberline {11.1.6}Semantic branch naming}{88}{subsection.11.1.6}%
+\contentsline {section}{\numberline {11.2}Coding Standards}{89}{section.11.2}%
+\contentsline {subsection}{\numberline {11.2.1}Lint and format settings}{89}{subsection.11.2.1}%
+\contentsline {subsection}{\numberline {11.2.2}Typing and data validation}{89}{subsection.11.2.2}%
+\contentsline {subsection}{\numberline {11.2.3}Generated files and the byte-identical check}{89}{subsection.11.2.3}%
+\contentsline {subsection}{\numberline {11.2.4}Node bodies as plain files}{90}{subsection.11.2.4}%
+\contentsline {subsection}{\numberline {11.2.5}Commit messages}{90}{subsection.11.2.5}%
+\contentsline {subsection}{\numberline {11.2.6}Line-ending policy}{90}{subsection.11.2.6}%
+\contentsline {subsection}{\numberline {11.2.7}Checks before publishing}{91}{subsection.11.2.7}%
+\contentsline {section}{\numberline {11.3}Testing Standards}{91}{section.11.3}%
+\contentsline {subsection}{\numberline {11.3.1}Test layers}{91}{subsection.11.3.1}%
+\contentsline {subsection}{\numberline {11.3.2}Decision rules fixed before the data}{91}{subsection.11.3.2}%
+\contentsline {subsection}{\numberline {11.3.3}Scorer self-tests}{92}{subsection.11.3.3}%
+\contentsline {subsection}{\numberline {11.3.4}The real-engine rig}{92}{subsection.11.3.4}%
+\contentsline {subsection}{\numberline {11.3.5}Judging a feature by its effect}{93}{subsection.11.3.5}%
+\contentsline {subsection}{\numberline {11.3.6}What the standards do not cover}{93}{subsection.11.3.6}%
+\contentsline {chapter}{\numberline {12}Conclusion and Future Scope}{94}{chapter.12}%
+\contentsline {section}{\numberline {12.1}Summary of the Project}{94}{section.12.1}%
+\contentsline {section}{\numberline {12.2}Objectives Traceability Matrix}{94}{section.12.2}%
+\contentsline {section}{\numberline {12.3}Current System Limitations}{96}{section.12.3}%
+\contentsline {subsection}{\numberline {12.3.1}What the results do not show}{96}{subsection.12.3.1}%
+\contentsline {subsection}{\numberline {12.3.2}Operational limits}{96}{subsection.12.3.2}%
+\contentsline {subsection}{\numberline {12.3.3}Experiments that did not work}{97}{subsection.12.3.3}%
+\contentsline {subsection}{\numberline {12.3.4}Inconsistencies found in the older documentation}{98}{subsection.12.3.4}%
+\contentsline {section}{\numberline {12.4}Future Enhancements}{98}{section.12.4}%
+\contentsline {chapter}{\numberline {A}Repository Map and Directory Structure}{100}{appendix.A}%
+\contentsline {section}{\numberline {A.1}Layout}{100}{section.A.1}%
+\contentsline {section}{\numberline {A.2}Documentation}{101}{section.A.2}%
+\contentsline {section}{\numberline {A.3}Reproducing the checks}{101}{section.A.3}%
+\contentsline {section}{\numberline {A.4}Evidence index}{102}{section.A.4}%
+\contentsline {section}{\numberline {A.5}Directory Tree}{102}{section.A.5}%
+\contentsline {chapter}{Bibliography}{105}{section*.12}%
+\contentsline {chapter}{Plagiarism Report}{109}{section*.15}%

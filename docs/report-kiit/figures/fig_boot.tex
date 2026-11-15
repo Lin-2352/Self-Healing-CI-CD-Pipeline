@@ -1,0 +1,15 @@
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[node distance=0.55cm, every node/.style={font=\sffamily\footnotesize}]
+  \node[start, minimum width=7.8cm] (a) {Check for two T4 GPUs (30720 MiB total)};
+  \node[proc, minimum width=7.8cm, below=of a] (b) {Unpack the prebuilt \texttt{llama-server} from the attached kernel};
+  \node[proc, minimum width=7.8cm, below=of b] (c) {Download the GGUF model (17.6 GB) with fallbacks};
+  \node[proc, minimum width=7.8cm, below=of c] (d) {Try context 131072; step down until one boots and answers};
+  \node[proc, minimum width=7.8cm, below=of d] (e) {Benchmark and thinking self-check};
+  \node[proc, minimum width=7.8cm, below=of e] (f) {Start Cloudflare quick tunnel, print the address};
+  \node[start, minimum width=7.8cm, below=of f] (g) {Serve for 1.5 hours; restart the server if it dies};
+  \foreach \x/\y in {a/b,b/c,c/d,d/e,e/f,f/g} \draw[flow] (\x) -- (\y);
+\end{tikzpicture}
+\caption{Boot sequence of the endpoint kernel on Kaggle.}
+\label{fig:boot}
+\end{figure}

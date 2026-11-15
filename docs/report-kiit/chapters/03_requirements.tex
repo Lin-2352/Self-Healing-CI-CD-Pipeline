@@ -1,0 +1,160 @@
+\chapter{System Requirements Specification}
+
+\section{Introduction and Purpose}
+
+This chapter states what the self-healing pipeline has to do and under which conditions. It serves two readers. The examiner can use it to see what was promised and where each promise is checked. A later maintainer can use it to decide whether a change breaks something that was meant to stay.
+
+The requirements were written down as the pipeline grew, and each one is checked by a test or by a recorded run. Functional requirements carry the prefix FR and non-functional ones the prefix NFR. The tables name the file that implements each requirement and the test or run that checks it, so every row can be followed into the repository.
+
+The system under specification is the whole pipeline: the GitHub Actions workflow, the n8n workflow, the model endpoint and the ci-heal-backend service. Three terms are used in the tables.
+
+\begin{itemize}
+  \item \textbf{Heal:} one attempt to turn a failed run into a fix pull request.
+  \item \textbf{Heal pull request:} a pull request opened by the healer, on a branch whose name starts with \texttt{ai-fix-}.
+  \item \textbf{Failure kind:} the label \texttt{code}, \texttt{infra} or \texttt{none} that the CI job derives from the exit code of the tests (source: \texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml}).
+\end{itemize}
+
+\section{Target Audience and User Roles}
+
+Three kinds of people deal with the system. They can be the same person in a small team, but the work they do with it is different.
+
+\begin{table}[!htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Role} & \textbf{What the person does with the system} & \textbf{Evidence in the repository} \\
+\midrule
+Developer & Pushes commits to \texttt{main}. When a push breaks the tests with a code error, the developer does not fix it by hand but waits for a fix pull request on an \texttt{ai-fix-} branch. A developer who pushes to a heal branch takes it over, and the healer then does nothing there. & \texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml}, step ``Decide'' \\
+Reviewer or maintainer & Reads the fix pull request, looks at the diff and at the CI result on it, and decides whether to merge. The system never merges and never pushes to the main branch. When the retry budget is used up, a comment on the pull request tells this person that the case needs a human. & \texttt{docs/\allowbreak{}report/\allowbreak{}chapters/\allowbreak{}01\_\allowbreak{}introduction.md}, \texttt{docs/\allowbreak{}report/\allowbreak{}chapters/\allowbreak{}12\_\allowbreak{}security.md} \\
+Operator & Starts and stops the parts: the model on Kaggle, n8n and the backend, with the launcher scripts. Keeps the secrets, posts the new model address after each Kaggle boot, stops the Kaggle session when finished and, for the backend, decides when to set \texttt{DRY\_RUN=false}. Reads the backend's database and its read API. & \texttt{launcher/\allowbreak{}README.md}, \texttt{docs/\allowbreak{}report/\allowbreak{}chapters/\allowbreak{}13\_\allowbreak{}operation.md}, \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}config.py} \\
+\bottomrule
+\end{tabularx}
+\caption{User roles and their use of the system.}
+\label{tab:roles}
+\end{table}
+
+\section{Functional Requirements}
+
+Table~\ref{tab:fr1} lists the requirements for failure detection, evidence and the model call. Table~\ref{tab:fr2} lists the requirements for applying the fix, the retry loop, the failure comment and the backend. Test names that start with \texttt{test\_} are in \texttt{tools/\allowbreak{}tests/\allowbreak{}} for the workflow and in \texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}} for the backend. ``Rig'' means the real-n8n scenarios in \texttt{tools/\allowbreak{}n8n\_\allowbreak{}rig/\allowbreak{}drive\_\allowbreak{}full.py}.
+
+\begin{table}[!htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{ID} & \textbf{Requirement} & \textbf{Implemented in} & \textbf{Tested by} \\
+\midrule
+FR-01 & A failed test step with an exit code other than 0 and 75 sets \texttt{failure\_kind=code}. The notify job runs only for that kind, and only on a push or on a pull request whose branch starts with \texttt{ai-fix-}. & \texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml} & live runs in \texttt{docs/\allowbreak{}results/\allowbreak{}GOLIVE\_\allowbreak{}RESULTS.md}; scratch runs that checked the branch gate (Round 2) \\
+FR-02 & A failure that is not a code error (exit code 75) produces no model call and no pull request. The workflow refuses any non-empty \texttt{failure\_kind} other than \texttt{code} a second time, because the webhook address is public. & \texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml}; \texttt{tools/\allowbreak{}nodes/\allowbreak{}build\_\allowbreak{}ai\_\allowbreak{}prompt.js} & rig probe \texttt{failure\_kind=infra} in \texttt{tools/\allowbreak{}n8n\_\allowbreak{}rig/\allowbreak{}drive\_\allowbreak{}full.py} \\
+FR-03 & Both n8n webhooks need the shared secret in the header \texttt{X-Webhook-Secret}. A request with a wrong or missing secret is rejected before the workflow starts. & \texttt{n8n/\allowbreak{}self\_\allowbreak{}healing\_\allowbreak{}pipeline.json} (header authentication) & \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}workflow\_\allowbreak{}structure.py}; HTTP 403 for a wrong secret against the cloud instance (Chapter 10) \\
+FR-04 & The workflow downloads the failed job's log, trims it to the failure region, lists the changed files and picks at most 3 candidate files. A missing log does not stop the heal. & \texttt{tools/\allowbreak{}nodes/\allowbreak{}pick\_\allowbreak{}candidate\_\allowbreak{}files.js}; \texttt{tools/\allowbreak{}nodes/\allowbreak{}build\_\allowbreak{}ai\_\allowbreak{}prompt.js} & \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}build\_\allowbreak{}prompt.py}; \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}multifile.py}; rig scenario with a 404 log (text \texttt{(log unavailable)}) \\
+FR-05 & The model call is streamed, so that the tunnel's 120 second silence limit does not cut it. Thinking is off on the first attempt and on for a retry. A stream that ends without a finish marker counts as a failed call. & \texttt{tools/\allowbreak{}nodes/\allowbreak{}build\_\allowbreak{}ai\_\allowbreak{}prompt.js}; \texttt{tools/\allowbreak{}nodes/\allowbreak{}assemble\_\allowbreak{}model\_\allowbreak{}reply.js} & \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}assemble\_\allowbreak{}reply.py}; rig retry scenario \\
+FR-06 & The model address can change without editing the workflow. A second webhook stores a new address, and only a host of the form \texttt{https://\allowbreak{}<name>.\allowbreak{}trycloudflare.\allowbreak{}com} is accepted. & \texttt{tools/\allowbreak{}nodes/\allowbreak{}store\_\allowbreak{}model\_\allowbreak{}url.js}; \texttt{tools/\allowbreak{}nodes/\allowbreak{}get\_\allowbreak{}model\_\allowbreak{}url.js} & \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}model\_\allowbreak{}url.py} (including look-alike hosts) \\
+\bottomrule
+\end{tabularx}
+\caption{Functional requirements FR-01 to FR-06.}
+\label{tab:fr1}
+\end{table}
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{ID} & \textbf{Requirement} & \textbf{Implemented in} & \textbf{Tested by} \\
+\midrule
+FR-07 & If the model call fails, the workflow can use a second model, and a comment says so when that fails too. & \texttt{tools/\allowbreak{}nodes/\allowbreak{}normalize\_\allowbreak{}openai\_\allowbreak{}reply.js}; \texttt{tools/\allowbreak{}gen\_\allowbreak{}n8n.py} & \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}model\_\allowbreak{}url.py}; rig scenarios \texttt{524} and \texttt{fallback} \\
+FR-08 & The fix is applied by exact text match. Each SEARCH text must occur in the file exactly once, the file must be one the model was shown, and the result must parse. A reply that cannot be applied is rejected with a reason. & \texttt{tools/\allowbreak{}nodes/\allowbreak{}extract\_\allowbreak{}ai\_\allowbreak{}response.js} & \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}extract\_\allowbreak{}node.py}; rig scenarios for each rejection path \\
+FR-09 & The fix goes into a pull request on an \texttt{ai-fix-} branch created from the failing commit. A branch name of \texttt{main} or \texttt{master} chosen by the model is replaced. Every commit carries a \texttt{Heal-Attempt: N} trailer. & \texttt{tools/\allowbreak{}nodes/\allowbreak{}extract\_\allowbreak{}ai\_\allowbreak{}response.js}; \texttt{n8n/\allowbreak{}self\_\allowbreak{}healing\_\allowbreak{}pipeline.json} & \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}extract\_\allowbreak{}node.py}; five live pull requests in Round 2 \\
+FR-10 & CI runs on the heal pull request. If it fails with a code error, the notify job calls the healer again with the attempt number read from the trailer, up to \texttt{MAX\_ATTEMPTS} (3 model attempts in total), and then comments that a person has to look. & \texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml}; \texttt{tools/\allowbreak{}nodes/\allowbreak{}build\_\allowbreak{}ai\_\allowbreak{}prompt.js} & \texttt{docs/\allowbreak{}results/\allowbreak{}GOLIVE\_\allowbreak{}RESULTS.md} (Rounds 2, 3 and 5); rig retry scenario \\
+FR-11 & When a step rejects or cannot complete the heal, a comment on GitHub states the reason, and for a failed model call it names the cause. & \texttt{tools/\allowbreak{}nodes/\allowbreak{}explain\_\allowbreak{}failure.js}; \texttt{tools/\allowbreak{}nodes/\allowbreak{}heal\_\allowbreak{}outcome.js} & \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}assemble\_\allowbreak{}reply.py}; \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}heal\_\allowbreak{}outcome.py}; rig scenarios \\
+FR-12 & The backend classifies a failed run into one of four categories, decides with a pure function whether to re-run, fix or escalate, writes nothing to GitHub while \texttt{DRY\_RUN} is true, and opens a fix pull request only when its candidate patches agree. & \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}core/\allowbreak{}decision\_\allowbreak{}engine.py}; \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}services/\allowbreak{}orchestrator.py}; \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}config.py} & \texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}decision\_\allowbreak{}engine.py}; \texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}classifier.py}; \texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}agreement.py}; replay in \texttt{docs/\allowbreak{}results/\allowbreak{}BACKEND\_\allowbreak{}ON\_\allowbreak{}KAGGLE.md} \\
+\bottomrule
+\end{tabularx}
+\caption{Functional requirements FR-07 to FR-12.}
+\label{tab:fr2}
+\end{table}
+
+\section{Non-Functional Requirements}
+
+The non-functional requirements are shown in two tables. Table~\ref{tab:nfr1} holds performance and reliability, Table~\ref{tab:nfr2} holds security, portability, observability and usability. Numbers are taken from the measured runs and are not targets that were set in advance, except where a row says so.
+
+\begin{table}[!htbp]
+\centering
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.4cm}>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{ID} & \textbf{Category} & \textbf{Requirement} & \textbf{Evidence} \\
+\midrule
+NFR-01 & Performance & The time from the breaking push to the open fix pull request should stay near one minute. The measured median is 42 s in the second live round and 44 s in the first. The five cases of the first round ranged from 42 s to 73 s, and the 73 s case lost 38 s in the GitHub Actions queue. & source: \texttt{docs/\allowbreak{}results/\allowbreak{}GOLIVE\_\allowbreak{}RESULTS.md}, Round 2 and Round 1 tables \\
+NFR-02 & Performance & The model phase should stay short. In the first live round it had a median of 11.4 s, down from about 57 s with whole-file output. Decoding ran at a median of 23.10 tokens per second in production. & source: \texttt{docs/\allowbreak{}results/\allowbreak{}GOLIVE\_\allowbreak{}RESULTS.md}; the endpoint speed study gives about 22 to 27 tokens per second (\texttt{kaggle/\allowbreak{}logs/\allowbreak{}endpoint/\allowbreak{}}) \\
+NFR-03 & Performance & The backend must give up on one failure after \texttt{PIPELINE\_TIMEOUT\_SECONDS}, 180 by default. In the replay of six fixtures the pipeline took 8 s to 40 s per fixture. & source: \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}config.py}; \texttt{docs/\allowbreak{}results/\allowbreak{}BACKEND\_\allowbreak{}ON\_\allowbreak{}KAGGLE.md} \\
+NFR-04 & Reliability & Re-running the workflow on the same commit must not open a second pull request, and the retry counter must survive a re-run and a restart of n8n. Branch and pull request creation continue on error, and the counter is the \texttt{Heal-Attempt} line in the commit message. & \texttt{tools/\allowbreak{}gen\_\allowbreak{}n8n.py}; \texttt{.github/\allowbreak{}workflows/\allowbreak{}demo-ci.yml} (comment on \texttt{MAX\_ATTEMPTS}) \\
+NFR-05 & Reliability & A stopped healer must not turn every broken commit red a second time. The webhook step turns a failed call into a warning. With the healer down, the build job failed and the notify job ended as success. & source: \texttt{docs/\allowbreak{}results/\allowbreak{}GOLIVE\_\allowbreak{}RESULTS.md}, Round 2 \\
+NFR-06 & Reliability & A long model call must survive the tunnel's 120 s silence limit. The same long request failed with HTTP 524 at 125.9 s without streaming and finished with HTTP 200 after 166.5 s with it. & source: \texttt{docs/\allowbreak{}results/\allowbreak{}GOLIVE\_\allowbreak{}RESULTS.md}, Round 5 \\
+\bottomrule
+\end{tabularx}
+\caption{Non-functional requirements NFR-01 to NFR-06.}
+\label{tab:nfr1}
+\end{table}
+
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.4cm}>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X}
+\toprule
+\textbf{ID} & \textbf{Category} & \textbf{Requirement} & \textbf{Evidence} \\
+\midrule
+NFR-07 & Security & No secret may be stored in the repository. Runtime secrets live outside it, the files \texttt{.env} and \texttt{secrets.json} are ignored by git, and the workflow JSON is searched for token prefixes by a test. The one known exception is the model endpoint key, which is a constant in a committed file. & \texttt{.gitignore}; \texttt{tools/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}workflow\_\allowbreak{}structure.py}; \texttt{docs/\allowbreak{}report/\allowbreak{}chapters/\allowbreak{}12\_\allowbreak{}security.md} \\
+NFR-08 & Security & The model is treated as untrusted. Its reply passes the gates of FR-08 and FR-09, CI runs on the pull request and a person merges. The backend adds secret redaction, edit size caps, a check against weakened tests and the \texttt{ai-fix-} rule in the GitHub client. & \texttt{tools/\allowbreak{}nodes/\allowbreak{}extract\_\allowbreak{}ai\_\allowbreak{}response.js}; \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}services/\allowbreak{}github\_\allowbreak{}client.py} (\texttt{\_refuse}); \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}services/\allowbreak{}secret\_\allowbreak{}redactor.py} \\
+NFR-09 & Security & The backend verifies GitHub's HMAC-SHA256 signature on the raw body, denies by default any repository outside \texttt{ALLOWED\_REPOS}, and refuses to start outside \texttt{dev} with an empty or placeholder secret. & \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}security.py}; \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}config.py}; \texttt{ci-heal-backend/\allowbreak{}tests/\allowbreak{}test\_\allowbreak{}security.py} \\
+NFR-10 & Portability & The model runs on a free Kaggle notebook with two T4 GPUs. The workflow runs on n8n Cloud or on a local n8n 1.x (n8n 2.x never registered the webhook). The backend needs Python 3.11 or later, uses SQLite by default and accepts a PostgreSQL URL. & \texttt{kaggle/\allowbreak{}endpoint/\allowbreak{}deploy\_\allowbreak{}src.py}; \texttt{ci-heal-backend/\allowbreak{}pyproject.toml}; \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}db/\allowbreak{}session.py} \\
+NFR-11 & Observability & Every backend failure, classification, fix candidate and decision is stored, with a snapshot of the thresholds, and can be read through the \texttt{/failures}, \texttt{/decisions} and \texttt{/stats} routes. The n8n side keeps execution timings, and a failed model call ends in a comment that quotes the cause. & \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}db/\allowbreak{}models.py}; \texttt{ci-heal-backend/\allowbreak{}app/\allowbreak{}api/\allowbreak{}stats.py}; \texttt{docs/\allowbreak{}report/\allowbreak{}chapters/\allowbreak{}08\_\allowbreak{}backend.md} \\
+NFR-12 & Usability & An operator can start and stop each component with one double-click script, and every number in the documentation points to the file that holds its evidence. & \texttt{launcher/\allowbreak{}README.md}; \texttt{tools/\allowbreak{}check\_\allowbreak{}docs.py} \\
+\bottomrule
+\end{tabularx}
+\caption{Non-functional requirements NFR-07 to NFR-12.}
+\label{tab:nfr2}
+\end{table}
+
+\section{Use Cases}
+
+\subsection{UC-1: Heal a failure on main}
+
+\textbf{Actor:} developer. \textbf{Precondition:} the model endpoint is running and its address has been stored in the workflow; the repository secrets \texttt{N8N\_WEBHOOK\_URL} and \texttt{N8N\_WEBHOOK\_SECRET} are set.
+
+\begin{enumerate}
+  \item The developer pushes a commit that changes files under \texttt{demo-app/\allowbreak{}} to \texttt{main}.
+  \item The \texttt{build-and-test} job runs \texttt{npm test}. The tests fail with exit code 1, so the job sets \texttt{failure\_kind=code}.
+  \item The \texttt{notify-n8n-on-failure} job sets \texttt{attempt=0} and \texttt{action=heal} and posts the run details to the n8n webhook with the shared secret.
+  \item n8n answers GitHub at once, downloads the failed job's log, lists the changed files and picks up to three candidate files.
+  \item n8n builds the prompt with thinking off and sends it to the model as a streamed request.
+  \item n8n rebuilds the reply, applies the SEARCH/REPLACE edits, checks that the file parses, creates an \texttt{ai-fix-} branch from the failing commit and pushes the patched file with the trailer \texttt{Heal-Attempt: 1}.
+  \item n8n opens a pull request into the branch that failed. The reviewer reads the diff and the CI result and decides whether to merge.
+\end{enumerate}
+
+\subsection{UC-2: Retry on the heal pull request}
+
+\textbf{Actor:} the pipeline, with the reviewer as an observer. \textbf{Precondition:} UC-1 has opened a heal pull request.
+
+\begin{enumerate}
+  \item CI runs on the heal pull request because the workflow also triggers on pull requests into \texttt{main}.
+  \item The run fails with a code error. The notify job sees that the branch starts with \texttt{ai-fix-} and reads the \texttt{Heal-Attempt} trailer from the head commit of the pull request.
+  \item If the trailer is below \texttt{MAX\_ATTEMPTS} (3), the job posts to the webhook with that attempt number. If there is no trailer, a person has pushed to the branch and nothing happens.
+  \item n8n builds the prompt again with thinking switched on and pushes a new commit with the next trailer value to the same branch.
+  \item CI runs again. On success the pull request waits for review. On a failure with the trailer at 3, the job comments that the cap is reached and that the case needs a human, and the loop stops.
+\end{enumerate}
+
+\subsection{UC-3: Failure comment}
+
+\textbf{Actor:} the pipeline. \textbf{Precondition:} a heal has started and some step cannot finish it.
+
+\begin{enumerate}
+  \item A step fails: the model call times out and the fallback also fails, the reply does not match the file exactly once, the edited file does not parse, or the named file was not one the model was shown.
+  \item The workflow builds an explanation of the cause with \texttt{tools/\allowbreak{}nodes/\allowbreak{}explain\_\allowbreak{}failure.js}. For a failed model call, the text names the cause of the primary call and of the fallback.
+  \item The workflow posts the explanation as a comment on GitHub. No pull request is opened for a reply that could not be applied.
+  \item The developer reads the comment and either fixes the code by hand or corrects the cause, for example by starting the model endpoint again and posting its new address.
+\end{enumerate}
+
+The comment exists because a silent dead end looks the same as a pipeline that is working. Seven workflow nodes still have no error setting, and a failure in one of them ends the execution without a comment.

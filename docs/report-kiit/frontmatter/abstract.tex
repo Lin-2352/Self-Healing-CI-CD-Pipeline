@@ -1,0 +1,13 @@
+\phantomsection\addcontentsline{toc}{chapter}{Abstract}
+\begin{center}
+{\Large\textbf{ABSTRACT}}
+\end{center}
+\vspace{1em}
+
+A team that pushes code several times a day breaks its build several times a day, and most breaks are small. Each one costs a developer the same routine of reading the log, finding the file and pushing a change. This project automates that routine and leaves the merge to a person. When a GitHub Actions run fails with a code error, meaning a test exit code other than 0 and 75, an n8n workflow of 26 nodes collects the CI log and the candidate source files and asks Qwen3.8-27B for SEARCH/REPLACE edits. The model runs on a free Kaggle notebook with two T4 GPUs behind a Cloudflare tunnel. The workflow applies the edits by exact text matching, checks that the file parses and opens a pull request on an \texttt{ai-fix-} branch. If CI fails on that pull request, it retries with the model's reasoning on, up to three attempts. A second healer, the FastAPI service ci-heal-backend, classifies a failure first and then re-runs the job, opens a fix pull request or opens an issue.
+
+In the second live round, 5 of 5 breakages were healed and all 5 fix pull requests passed CI, with a median of 42 s from push to pull request. On 18 hard single-file bugs, the first try with thinking off healed 12, and thinking on healed all 18 at about four times the time. On multi-file bugs the first pass healed 9 of 18, below the bar of 12 that was fixed before the data was collected, and the retry loop reached 15 of 18 in replay. The backend classified all six replay fixtures correctly, and its suite grew from 157 to 205 passing tests after a security audit.
+
+All heal measurements use one small demo application, the case sets are small, and a fix that passes CI can still change behaviour, as one recorded run showed. The OpenAI fallback has never produced a fix, 17 of 21 backend audit findings are open, and a person must start the Kaggle endpoint because its address changes on every boot.
+
+\clearpage

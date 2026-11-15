@@ -1,0 +1,88 @@
+\section{Directory Tree}
+The tree below lists the top two levels of the repository, with the number of files under each folder (generated from \texttt{git ls-files}; the demo-app clone, run data, logs, media and this report are left out).
+
+\begin{lstlisting}
+self_healing_CI-CD_Pipeline/
+|-- .gitattributes
+|-- .github/
+|   `-- workflows/  (1 files)
+|-- .gitignore
+|-- README.md
+|-- ci-heal-backend/
+|   |-- .env.example
+|   |-- .gitignore
+|   |-- .python-version
+|   |-- Dockerfile
+|   |-- README.md
+|   |-- app/  (50 files)
+|   |-- docs/  (1 files)
+|   |-- fixtures/  (7 files)
+|   |-- pyproject.toml
+|   |-- scripts/  (1 files)
+|   `-- tests/  (19 files)
+|-- demo-app/
+|   |-- .gitattributes
+|   |-- .gitignore
+|   |-- index.js
+|   |-- package-lock.json
+|   |-- package.json
+|   |-- src/  (2 files)
+|   |-- test.js
+|   `-- test/  (1 files)
+|-- docs/
+|   |-- PROJECT_REPORT.md
+|   |-- PROJECT_REPORT.pdf
+|   |-- README.md
+|   |-- architecture/  (2 files)
+|   |-- backend/  (8 files)
+|   |-- guides/  (4 files)
+|   |-- old/  (5 files)
+|   |-- report/  (20 files)
+|   |-- research/  (3 files)
+|   `-- results/  (9 files)
+|-- eval/
+|   |-- analyze_qs.py
+|   |-- bakeoff_eval.py
+|   |-- build_bakeoff_eval.py
+|   |-- build_hard_cases.py
+|   |-- build_multifile_cases.py
+|   |-- build_multifile_eval.py
+|   |-- build_shipped_eval.py
+|   |-- cases/  (6 files)
+|   |-- check_multifile_cases.py
+|   |-- multifile_eval.py
+|   |-- quality_speed_eval.py
+|   |-- rescore_bakeoff.py
+|   |-- rescore_multifile.py
+|   |-- rescore_shipped.py
+|   |-- run_multifile_eval_remote.py
+|   |-- run_multifile_retry_remote.py
+|   |-- shipped_quality_eval.py
+|   |-- test_bakeoff_eval.py
+|   |-- test_multifile_eval.py
+|   |-- test_qualityspeed.py
+|   `-- test_shipped_eval.py
+|-- kaggle/
+|   |-- README.md
+|   |-- endpoint/  (4 files)
+|   |-- evals/  (6 files)
+|   |-- notebooks/  (3 files)
+|   `-- tools/  (7 files)
+|-- launcher/
+|   |-- README.md
+|   |-- end/  (4 files)
+|   `-- start/  (6 files)
+|-- n8n/
+|   `-- self_healing_pipeline.json
+|-- run_tests.py
+`-- tools/
+    |-- check_docs.py
+    |-- gen_n8n.py
+    |-- golive/  (8 files)
+    |-- heal_harness.py
+    |-- media/  (1 files)
+    |-- n8n_rig/  (6 files)
+    |-- nodes/  (10 files)
+    |-- report/  (2 files)
+    `-- tests/  (7 files)
+\end{lstlisting}
