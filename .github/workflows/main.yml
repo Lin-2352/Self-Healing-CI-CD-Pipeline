@@ -1,31 +1,37 @@
-name: CI Pipeline
+name: CI Pipeline # this is just the label for our workflow
 
+# the trigger: this tells GitHub when to start the engine
 on:
+  # this tells us torun this on every code push
   push:
+    # which branch to watch
     branches:
-      - main
+      - main # the pipeline is locked onto our production branch
   # Heal PRs (ai-fix-* -> main) get their own CI run, so a wrong-but-parsing fix shows red.
   pull_request:
     branches:
       - main
 
+# this is where the actual tasks begin
 jobs:
+  # our first job, the primary validation step
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # GitHub gives us a fresh Linux server
     outputs:
       failure_kind: ${{ steps.tests.outputs.failure_kind }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout code # just a label for the first step
+        uses: actions/checkout@v4 # a pre-built tool that pulls our code into the runner (v4 means version 4)
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - name: Setup Node.js # prepare our environment
+        uses: actions/setup-node@v4 # this installs Node.js for us
+        with: # pass a specific setting to the step
+          node-version: 20 # the latest stable version
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install dependencies # time to get our libraries
+        run: npm install # downloads everything we need
 
+      # the moment of truth: if our code is broken, the pipeline stops right here
       - name: Run tests
         id: tests
         run: |
@@ -47,11 +53,13 @@ jobs:
           exit "$code"
 
       - name: Build project
-        run: npm run build --if-present
+        run: npm run build --if-present # --if-present so it does not error out if the build script is missing
 
+  # the emergency response job, at the same level as the first job
   notify-n8n-on-failure:
     runs-on: ubuntu-latest
-    needs: build-and-test
+    needs: build-and-test # this job waits for the first one to finish
+    # failure() is the line that makes this job trigger only if the build fails.
     # failure() alone would also fire for infrastructure problems (port already
     # bound, DNS, runner disk). Those have nothing to fix in the source, and the
     # model would invent a bogus patch and open a PR for them.
@@ -96,10 +104,19 @@ jobs:
           { echo "branch=$HEAD_REF"; echo "commit=$HEAD_SHA"; echo "attempt=${attempt:-0}"; echo "action=$action"; } >> "$GITHUB_OUTPUT"
           echo "event=$EVENT attempt=${attempt:-none} cap=$MAX_ATTEMPTS -> $action"
 
+      # send the failure details to the n8n webhook so the self-healing workflow can start
       - name: Trigger n8n webhook
         if: steps.decide.outputs.action == 'heal'
         # The webhook host is a tunnel that is only up while the healer is deployed. When it is
         # down, warn instead of failing: a dead healer is not a failure of this commit.
+        # the pipe symbol (|) lets us write a clean multi-line command.
+        # curl -X POST sends the request to the webhook URL.
+        # secrets.N8N_WEBHOOK_URL: we use secrets to keep sensitive URLs hidden from the public
+        #   (they are set in the repo's GitHub settings, under secrets and variables > actions).
+        # -H "Content-Type: application/json" says the body we send is JSON.
+        # -H "X-Webhook-Secret: ..." is a secret token, so only our authorized pipeline can talk to n8n.
+        # -d '{...}' is the body: run_id is github.run_id, repo is github.repository,
+        #   branch is the branch name, commit is the commit SHA, and actor is the GitHub username.
         run: |
           curl -sS --fail --max-time 20 -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
