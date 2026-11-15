@@ -18,8 +18,8 @@ levers below postdate that sweep, and the prebuilt server we already ship suppor
 
 | # | config | median tok/s | vs baseline | median wall | fix_correct | draft acceptance |
 |---|---|---|---|---|---|---|
-| A | baseline (today's flags) | 12.35 | — | 56.7 s | **15/15** | — |
-| B | `-sm tensor` + f16 KV † | 15.49 | **+25%** | 45.3 s | **15/15** | — |
+| A | baseline (today's flags) | 12.35 | n/a | 56.7 s | **15/15** | n/a |
+| B | `-sm tensor` + f16 KV † | 15.49 | **+25%** | 45.3 s | **15/15** | n/a |
 | C | `--spec-type draft-mtp` | 19.99 | **+62%** | 36.8 s | **15/15** | 0.953 |
 | D | **both** | **26.83** | **+117%** | **27.8 s** | **15/15** | 0.960 |
 
@@ -189,7 +189,7 @@ cycle to **~75 s**. This is a projection from bench medians, not an end-to-end m
 **It compounds with the format change.** `DIFF_FORMAT_EVAL.md` showed SEARCH/REPLACE cuts
 generated tokens **655 → 171** at 15/15 byte-exact. Speed and token count multiply: 171 tokens at
 26.83 tok/s is **~6.4 s** of generation, versus 56.7 s today. Both together project the cycle
-toward **~55 s**. Neither is implemented yet; this one is a flag change, the other is real work in
+toward **~55 s**. Neither was implemented when this was written (both have shipped since: see `GOLIVE_RESULTS.md`, which measured 42 to 44 s); this one is a flag change, the other is real work in
 the `Extract AI Response` node.
 
 ## Reproducing

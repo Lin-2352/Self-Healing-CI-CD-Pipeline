@@ -2,6 +2,8 @@
 
 **Verdict: ship `search_replace`. Do not ship `unified_diff`.**
 
+> **Update (2026-11-15):** `search_replace` has shipped. The `edits` schema is applied by `tools/nodes/extract_ai_response.js`. The "work needed to ship" section below describes what was planned at the time of the study. The measured push to PR time in production is 42 to 44 s (`GOLIVE_RESULTS.md`).
+
 The model is ~55% of the push→PR wall clock, and today it re-emits the **entire file** to fix one
 line. This measures whether a patch format is cheaper *without* costing correctness. It is the
 measurement the plan pre-registered; no pipeline code changed to produce it.
@@ -19,7 +21,7 @@ measurement the plan pre-registered; no pipeline code changed to produce it.
 | format | prompt tok | gen tok | wall | applied | **strict** | `node --check` | **CLEAN** | byte-exact |
 |---|---|---|---|---|---|---|---|---|
 | `whole_file` (today) | 794 | **655** | **56.4 s** | 15/15 | n/a | 15/15 | **15/15** | **15/15** |
-| `unified_diff` | 1150 | 233 | 23.3 s | 15/15 | **12/15** | **12/15** | **12/15** | — |
+| `unified_diff` | 1150 | 233 | 23.3 s | 15/15 | **12/15** | **12/15** | **12/15** | n/a |
 | `search_replace` | 861 | **171** | **17.0 s** | 15/15 | n/a | 15/15 | **15/15** | **15/15** |
 
 **CLEAN** = applied **and** parses **and** matches the fix regexes. It is the only column that means

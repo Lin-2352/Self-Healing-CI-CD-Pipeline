@@ -62,7 +62,7 @@ maintained source or builder, regenerate the kernel, and then verify the generat
 ### Local machine
 
 - Windows PowerShell with Python 3.10+;
-- repository dependencies installed as described in `docs/SETUP.md`;
+- repository dependencies installed as described in `docs/guides/SETUP.md`;
 - the Kaggle CLI installed and authenticated with a Kaggle API token; and
 - access to the project root so all commands below resolve `kaggle/...` paths correctly.
 
@@ -82,14 +82,14 @@ The live endpoint requires:
 The endpoint intentionally exits when the assigned GPU memory is below the two-T4 threshold instead
 of downloading a model that cannot run.
 
-## Public notebook snapshot
+## Notebook snapshot
 
-The public endpoint notebook is [`lacrimatct/qwen3-8-27b-live-endpoint`](https://www.kaggle.com/code/lacrimatct/qwen3-8-27b-live-endpoint).
+The endpoint notebook (private on Kaggle) is [`lacrimatct/qwen3-8-27b-live-endpoint`](https://www.kaggle.com/code/lacrimatct/qwen3-8-27b-live-endpoint).
 The checked-in snapshot is separate from the maintained deployment source:
 
 - `notebooks/qwen3-8-27b-live-endpoint.py` is the exact script downloaded from Kaggle.
 - `notebooks/qwen3-8-27b-live-endpoint.ipynb` provides a local notebook view and executes that sibling script.
-- `notebooks/kernel-metadata.json` records the public kernel ID, title, machine shape, internet setting,
+- `notebooks/kernel-metadata.json` records the kernel ID, title, machine shape, internet setting,
   and attached kernel source.
 - `endpoint/deploy_src.py` is the source used when generating future endpoint pushes.
 
@@ -214,8 +214,10 @@ health timeout before the next rung is attempted. Inspect the selected context, 
 
 ### The endpoint URL changed
 
-This is expected after a new Cloudflare quick-tunnel session. Run `watch_deploy.py` again and update
-the n8n `QWEN_BASE_URL` variable or the local runtime state used by the go-live tools.
+This is expected after a new Cloudflare quick-tunnel session. `watch_deploy.py` saves the new address,
+and `python tools/golive/set_cloud_qwen_url.py` posts it to the cloud workflow's Set Model URL webhook
+(the launcher does both). The `QWEN_BASE_URL` variable in n8n is only a fallback. For the local n8n,
+re-import the workflow with `launcher/start/2_load_workflow_into_n8n.bat`.
 
 ### Logs are empty or contain encoding errors
 
@@ -245,7 +247,7 @@ on every boot, so run it again after each deploy.
 Two endpoint settings matter for the backend:
 
 - Thinking is off unless a request asks for it. Qwen3.8's chat template thinks by default, and the backend
-  only sends `enable_thinking` when it wants thinking (on a classifier re-ask), so the server starts with
+  only sends `enable_thinking` when a caller asks for thinking (none does yet), so the server starts with
   `--chat-template-kwargs '{"enable_thinking":false}'`. The boot checks this by asking twice and prints
   `thinking by default` and `thinking when asked`; both values also go into `endpoint.json`. With thinking
   on by default, the classifier's 512-token budget can run out before the JSON answer.
@@ -259,7 +261,7 @@ Two endpoint settings matter for the backend:
 - `docs/results/SHIPPED_QUALITY_EVAL.md`: shipped prompt/log/thinking quality results.
 - `docs/results/MULTIFILE_EVAL.md`: cross-file repair results.
 - `docs/research/`: hardware, model identity, speed, and quantization measurements.
-- `docs/SETUP.md`: complete repository and n8n setup instructions.
+- `docs/guides/SETUP.md`: complete repository and n8n setup instructions.
 - `README.md`: project overview, end-to-end testing, and go-live workflow.
 
 ## Security and lifecycle notes

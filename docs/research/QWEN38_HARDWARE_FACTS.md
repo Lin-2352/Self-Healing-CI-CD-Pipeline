@@ -40,7 +40,7 @@ generic 2-bit. Repo: `ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF`.
 | RTX 3090 24 GB | Q4_K_M | 42 tok/s → **65.6 with native MTP n=2 (+56%)** |
 | RTX 3090 | ExLlamaV3 4.0 bpw + Q8 cache | 43 / 37 @32k / 33 @65k |
 | RTX 5090 32 GB | NVFP4 in vLLM + 4-bit TurboQuant KV + MTP | **~160 tok/s across full 262k**, KV only 5.5 GB |
-| — | **D-Flash 2** learned block-diffusion drafter | 200–300 tok/s on structured coding (needs pinned known-good vLLM; stock builds corrupt output) |
+| n/a | **D-Flash 2** learned block-diffusion drafter | 200–300 tok/s on structured coding (needs pinned known-good vLLM; stock builds corrupt output) |
 
 **32 GB cards:** "Q5_K_M or Q6_K GGUFs at roughly 21 GB, leaving ample space for unquantized KV
 caches and extended context windows."

@@ -14,7 +14,7 @@ endpoint and the backend's six fixture failures were replayed through its real p
 ## The thinking default
 
 Qwen3.8's chat template thinks unless told otherwise; the v11 server log reads `chat template, thinking = 1`.
-The backend sends `enable_thinking` only to switch thinking on, for a classifier re-ask, so before this change
+The backend sends `enable_thinking` only to switch thinking on, and the HTTP client supports it, but no caller passes it yet (the classifier re-ask does not), so before this change
 every classifier and fixer call would have thought first. The classifier asks for at most 512 tokens and
 thinking tokens count against that, so a long thought could leave no room for the JSON and the failure would
 escalate.

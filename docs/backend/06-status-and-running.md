@@ -42,7 +42,7 @@ Each item explains why it matters, so you can judge what to do next.
 
 **Connecting the React dashboard.** The API endpoints the dashboard needs are built and protected, but no user interface displays them yet. Until it is connected, results can only be seen through the `/docs` page, direct API calls, or the database itself.
 
-**An end-to-end run through the Kaggle tunnel.** The HTTP model client is tested only against fake servers. A real run would prove that the prompts, streaming, timeouts, and reply parsing all work with the actual Qwen model running on Kaggle, which can behave differently from a fake.
+**A run against real GitHub.** The HTTP model client was first tested only against fake servers. On 2026-11-15 the six fixtures were replayed through the real pipeline against the Qwen model on Kaggle, with GitHub mocked and `DRY_RUN` on ([BACKEND_ON_KAGGLE.md](../results/BACKEND_ON_KAGGLE.md)): every fixture was classified correctly and all 15 fix candidates applied. What still has no run is the backend with `DRY_RUN=false` against a real repository.
 
 **A sandbox repository run with `DRY_RUN=false`.** No real branch, pull request, issue, or rerun has been created yet. This is the only way to test verification for real and to collect outcomes that the statistics can use.
 

@@ -35,7 +35,7 @@ Readiness is `GET {root}/v1/models` with the same bearer header. The backend tre
 - Classifier: `temperature` is `CLASSIFIER_TEMPERATURE` (default 0), `max_tokens` is `CLASSIFIER_MAX_TOKENS` (default 512). One sample by default. Set `CLASSIFIER_SAMPLES=3` and a temperature above 0 when the samples should differ.
 - Fixer: `temperature` is `FIX_TEMPERATURE` (default 0.7), `max_tokens` is `FIX_MAX_TOKENS` (default 4096). The backend asks for `FIX_CANDIDATES` completions (default 3), one at a time.
 - `stream` defaults to true. The Cloudflare tunnel in front of Kaggle closes a request that stays quiet for about two minutes, so a long completion has to stream.
-- On a classifier re-ask only, the body may include `"chat_template_kwargs": {"enable_thinking": true}`. Other providers can ignore that field.
+- The HTTP client adds `"chat_template_kwargs": {"enable_thinking": true}` only when a caller passes `enable_thinking=True`. No caller does today (`app/services/classifier.py` never sets it), so every request leaves thinking to the server default. Other providers can ignore the field.
 - Calls for one role are sequential. The Kaggle server is started with `--parallel 1`.
 
 The user message wraps the log, the diff, and any file bodies in `<<<UNTRUSTED_...>>>` … `<<<END_UNTRUSTED_...>>>` markers. Text inside those markers is evidence. Instructions inside them must be ignored.

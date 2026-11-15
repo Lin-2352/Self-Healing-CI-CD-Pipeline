@@ -1,6 +1,8 @@
 # Go-live: SEARCH/REPLACE + tensor split + MTP, measured end to end
 
-> **Round 2 (2026-09-23) is at the bottom.** It fixes the defects this round found: the CI log is now in
+> **Round 5 (2026-09-28, last section)** fixed the retry timeout and a silent dead end: a model call that fails now ends in a comment that quotes the cause. The kernel window is `HOURS = 1.5` today (it was 1.0 in the rounds below).
+>
+> **Round 2 (2026-09-23) is further down.** It fixes the defects this round found: the CI log is now in
 > the prompt, heal PRs run their own CI, a dead healer no longer turns commits red, the ctx ladder
 > boots first try, and n8n readiness is judged by effect. Result: 5/5 healed, 5/5 heal-PR CI green,
 > real CI log in 5/5 prompts. Push→PR median 42 s.
@@ -179,7 +181,7 @@ Evidence sources:
 | ctx ladder starts at 131072, 300 s per rung | ~30 min of GPU hung on 262144/196608 | **first rung booted**, 26,566 / 30,720 MiB, symmetric [13287, 13287], MTP accept 0.671 on the prose bench |
 | readiness by effect (`tools/golive/up.py`) | `/healthz` green before activation → false 404 | webhook probed with a wrong secret. **403 after 88 s** = registered and guarded |
 | `pr_body`: "at most 2 short sentences" | median 167 completion tokens | **median 128** (−23%). Bodies are 108–158 chars and now cite the logged error |
-| `cache_prompt: true` | — | **no effect**: round 1 already had `cache_n = 205` on calls 2–5 (server default). Now 216. Kept explicit only as documentation |
+| `cache_prompt: true` | n/a | **no effect**: round 1 already had `cache_n = 205` on calls 2–5 (server default). Now 216. Kept explicit only as documentation |
 
 ## Two defects the verification caught before production
 

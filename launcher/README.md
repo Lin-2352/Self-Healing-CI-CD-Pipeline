@@ -4,7 +4,7 @@ Double-click scripts to start and stop every part of the project. `start/` bring
 takes them down. Each script opens its own window, prints what it is doing, and waits for a key
 before closing, so you can read the result.
 
-All of them need Python, Node and the local n8n install described in `docs/SETUP.md`. They find the
+All of them need Python, Node and the local n8n install described in `docs/guides/SETUP.md`. They find the
 project root on their own, so they work from wherever the repository is checked out.
 
 ## Which order

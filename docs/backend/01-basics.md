@@ -40,7 +40,7 @@ A **status code** is a three-digit number in every response. Codes starting with
 
 ### API and endpoint
 
-An **API** (Application Programming Interface) is a set of agreed requests one program can make to another. A web API is a list of URLs with rules about what to send and what comes back. One URL plus one method is an **endpoint**, for example `GET /health`. In code, the function that handles an endpoint is often called a **route** or a **handler**. This backend has fifteen endpoints. GitHub also has an API, which this backend calls to download logs and open pull requests.
+An **API** (Application Programming Interface) is a set of agreed requests one program can make to another. A web API is a list of URLs with rules about what to send and what comes back. One URL plus one method is an **endpoint**, for example `GET /health`. In code, the function that handles an endpoint is often called a **route** or a **handler**. This backend has sixteen endpoints. GitHub also has an API, which this backend calls to download logs and open pull requests.
 
 ### Webhook
 

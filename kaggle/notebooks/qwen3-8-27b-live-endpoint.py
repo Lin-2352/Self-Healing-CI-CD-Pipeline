@@ -1,17 +1,14 @@
-# %% [code]
-"""Live Qwen3.8-27B endpoint on Kaggle 2xT4 - fast path (no compile).
+"""Qwen3.8-27B endpoint on Kaggle 2xT4, no compiling.
 
-Deploy method borrowed from linsxav/qwopus3-6-35b-a3b-1: the CUDA llama-server is built ONCE
-in linsxav/llama-server-builder and attached here via kernel_sources, so startup is an unzip
-plus LD_LIBRARY_PATH instead of ~40 minutes of cmake on 4 slow vCPUs.
+The CUDA llama-server is built once in linsxav/llama-server-builder and attached to this kernel
+through kernel_sources (the trick comes from linsxav/qwopus3-6-35b-a3b-1). Startup is an unzip and an
+LD_LIBRARY_PATH instead of about 40 minutes of cmake on 4 slow vCPUs.
 
-Model: chosen in kaggle/endpoint/models.json; kaggle/tools/build_endpoint.py writes the chosen
-entry into MODEL_SPEC below and produces kaggle/endpoint/push/. The default is unsloth
-Qwen3.8-27B UD-Q4_K_XL (17.6 GB), the measured production model.
+The model is picked in kaggle/endpoint/models.json. kaggle/tools/build_endpoint.py pastes that entry
+into MODEL_SPEC below and writes kaggle/endpoint/push/. The default is unsloth Qwen3.8-27B
+UD-Q4_K_XL (17.6 GB), the one we measured.
 
-Speed: with -sm tensor + MTP n=2 the default serves ~24-30 tok/s on 2xT4 (measured live; it was
-~7-9 tok/s before those two levers). This script benchmarks itself on boot so the number for
-whatever model it serves is measured, not assumed.
+Speed on 2xT4 is about 24-30 tok/s with -sm tensor and MTP n=2. Before those two flags it was 7-9.
 """
 import json, os, re, shutil, subprocess, time, urllib.request, datetime, glob
 
@@ -21,6 +18,8 @@ BIN = OUT + "/bin"
 API_KEY = "selfheal-e2e-key"
 os.makedirs(OUT, exist_ok=True)
 
+# sh() captures output instead of printing it, so a health check can tell a dead server
+# from a slow one without filling the Kaggle log.
 
 def sh(cmd, timeout=None):
     p = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
@@ -31,6 +30,7 @@ def banner(m):
     print(NL + "=" * 78 + NL + m + NL + "=" * 78, flush=True)
 
 
+# wrong machine shape? stop now, before downloading 17 GB for nothing
 _, gpu, _ = sh("nvidia-smi --query-gpu=name,memory.total --format=csv,noheader")
 vram = 0
 for r in gpu.strip().split(NL):
@@ -40,7 +40,7 @@ print("GPU:", gpu.strip().replace(NL, " | "), "| total", vram, "MiB", flush=True
 if vram < 24000:
     print("ABORT: need 2xT4"); raise SystemExit(0)
 
-# ---------- 1. prebuilt llama-server (no compile) ----------
+# the server binary arrives as an attached zip; compiling it on this VM would take too long
 banner("EXTRACTING PREBUILT llama-server")
 cands = glob.glob("/kaggle/input/**/llama-server-cuda.zip", recursive=True)
 print("zip candidates:", cands, flush=True)
@@ -68,8 +68,6 @@ print("extracted in %.1fs; --help rc=%s" % (time.time() - t0, rc), flush=True)
 print((o or e)[:300], flush=True)
 assert rc == 0, "prebuilt binary does not run"
 
-# ---------- 2. model ----------
-# Filled by kaggle/tools/build_endpoint.py from kaggle/endpoint/models.json - edit the JSON, not this line.
 MODEL_SPEC = {"key": "unsloth-ud-q4kxl", "repo": "unsloth/Qwen3.8-27B-GGUF", "pattern": "UD-Q4_K_XL\\.gguf$", "fallbacks": [["unsloth/Qwen3.8-27B-GGUF", "UD-Q4_K_M\\.gguf$"], ["unsloth/Qwen3.8-27B-GGUF", "UD-Q6_K\\.gguf$"]]}
 REPO, QUANT = MODEL_SPEC["repo"], MODEL_SPEC["pattern"]
 FALLBACKS = [tuple(f) for f in MODEL_SPEC["fallbacks"]]
@@ -80,6 +78,7 @@ MODELS = "/kaggle/tmp/models"
 os.makedirs(MODELS, exist_ok=True)
 
 
+# take the first gguf that matches; the fallbacks cover a repo that dropped the quant we want
 def fetch(repo, rx):
     try:
         files = [f for f in API.list_repo_files(repo) if f.lower().endswith(".gguf")]
@@ -96,6 +95,7 @@ def fetch(repo, rx):
     return p, repo
 
 
+# which file we really got ends up in endpoint.json further down
 banner("DOWNLOADING MODEL %s (%s)" % (MODEL_SPEC["key"], REPO))
 MODEL, USED_REPO = fetch(REPO, QUANT)
 if not MODEL:
@@ -107,6 +107,7 @@ GB = os.path.getsize(MODEL) / 1e9
 
 
 def wait_health(port=8000, timeout=900):
+    """Poll /health until it answers 200. Give up early if llama-server has exited."""
     t = time.time()
     while time.time() - t < timeout:
         try:
@@ -129,37 +130,59 @@ def vram_used():
     return sum(vram_per_gpu()) or -1
 
 
+# Qwen3.8's chat template thinks unless a request says otherwise (the server log shows
+# "thinking = 1"). n8n always sends enable_thinking, but ci-heal-backend only sends it to turn
+# thinking on, so the server itself has to default to off. enable_thinking:true still works per request.
+_, _help, _ = sh(ENV_PREFIX + SERVER + " --help 2>&1")
+THINK_OFF_FLAG = "--chat-template-kwargs '{\"enable_thinking\":false}' " if "--chat-template-kwargs" in _help else ""
+if not THINK_OFF_FLAG:
+    print("WARNING: this llama-server has no --chat-template-kwargs; thinking stays on by default. "
+          "Set CLASSIFIER_/FIXER_LLM_THINKING_FLAG=explicit in ci-heal-backend.", flush=True)
+
+
 def launch(ctx, port=8000, timeout=900):
+    """Start llama-server at this context size with the settings we run in production."""
     sh("pkill -f llama-server; sleep 4")
-    # Measured winner (SPEED_LEVERS_EVAL.md / SPEED_QUALITY_EVAL.md): 12.35 -> 28.02 tok/s.
-    #   -sm tensor  splits every tensor so BOTH T4s stream weights concurrently. Layer split
-    #               (the old default) runs them sequentially - 320 GB/s, not 640.
-    #   f16 KV      NOT a preference: tensor mode REFUSES to start with quantized KV.
-    #   draft-mtp   speculative decode off the MTP head already inside unsloth's GGUF. Measured
-    #               acceptance 0.965, mean 2.9 tokens per verify pass.
-    #   --parallel 1  speculative decode is a single-stream optimisation; the gain is gone by 4.
-    #
-    # `--parallel 1` is a deliberate PRODUCTION choice, not an inherited benchmark flag. Two
-    # failing pushes close together mean n8n issues a second heal while one is in flight; with
-    # -np 1 that request QUEUES rather than running concurrently. Accepted on purpose: heals are
-    # rare, and a queued second heal is better than halving draft acceptance on both. If heals
-    # ever become frequent, raise -np/--parallel together and expect the MTP gain to shrink.
-    cmd = (ENV_PREFIX + "nohup " + SERVER +
-           " -m '%s' --n-gpu-layers 999 --ctx-size %d --flash-attn on "
-           "-sm tensor --cache-type-k f16 --cache-type-v f16 "
-           "--spec-type draft-mtp --spec-draft-n-max 2 --parallel 1 "
-           "-b 2048 -ub 512 -t 4 -tb 4 "
-           # Caps thinking, which the workflow enables on RETRIES only. Measured: 1024 healed
-           # 18/18 hard calls, worst eval call 78 s, but a live retry ran 126 s and hit the tunnel's 120 s timeout (524).
-           "--reasoning-budget 1024 "
-           "--host 0.0.0.0 --port %d -np 1 --jinja --api-key %s > %s/server.log 2>&1 &"
-           % (MODEL, ctx, port, API_KEY, OUT))
+    # -sm tensor splits the weights over both T4s and MTP speeds up decoding.
+    # One slot only: heal requests arrive one at a time.
+    args = (" -m '%s' --n-gpu-layers 999 --ctx-size %d --flash-attn on "
+            "-sm tensor --cache-type-k f16 --cache-type-v f16 "
+            "--spec-type draft-mtp --spec-draft-n-max 2 --parallel 1 "
+            "-b 2048 -ub 512 -t 4 -tb 4 "
+            "--reasoning-budget 1024 "
+            "--host 0.0.0.0 --port %d -np 1 --jinja --api-key %s "
+            % (MODEL, ctx, port, API_KEY))
+    cmd = ENV_PREFIX + "nohup " + SERVER + args + THINK_OFF_FLAG + "> %s/server.log 2>&1 &" % OUT
     os.system(cmd)
     return wait_health(port, timeout=timeout)
 
 
+def thinking_check(port=8000):
+    """Ask the same question twice, plain and with enable_thinking:true. We look at the reply
+    (reasoning_content or a <think> block means it thought), not at the log."""
+    def thought(extra):
+        body = dict({"model": "local", "max_tokens": 600, "temperature": 0, "stream": False,
+                     "messages": [{"role": "user", "content": "What is 17 * 23? Answer with the number."}]}, **extra)
+        req = urllib.request.Request("http://localhost:%d/v1/chat/completions" % port, json.dumps(body).encode(),
+                                     {"Content-Type": "application/json", "Authorization": "Bearer " + API_KEY})
+        try:
+            msg = json.loads(urllib.request.urlopen(req, timeout=300).read())["choices"][0]["message"]
+        except Exception as ex:
+            return None, str(ex)[:120]
+        content = msg.get("content") or ""
+        return bool(msg.get("reasoning_content") or "<think>" in content), content.strip()[-40:]
+    default, d_out = thought({})
+    asked, a_out = thought({"chat_template_kwargs": {"enable_thinking": True}})
+    print("  thinking by default : %s  (reply %r)" % (default, d_out), flush=True)
+    print("  thinking when asked : %s  (reply %r)" % (asked, a_out), flush=True)
+    if default is not False or asked is not True:
+        print("  WARNING: thinking switch is not as expected (default should be off, on when asked).", flush=True)
+    return {"thinking_by_default": default, "thinking_when_asked": asked}
+
+
 def bench(port=8000, n=3, max_tokens=256):
-    """Real generation speed, reported by the server itself."""
+    """Generation speed as the server itself reports it."""
+    # we keep the server's own timings plus memory use per GPU, and don't guess from the log
     got = []
     for i in range(n):
         body = json.dumps({"model": "local", "max_tokens": max_tokens, "temperature": 0.7,
@@ -175,10 +198,6 @@ def bench(port=8000, n=3, max_tokens=256):
         except Exception as ex:
             got.append({"error": str(ex)[:120]}); continue
         tm = j.get("timings", {})
-        # accept_rate is the PROOF that MTP engaged. Do NOT grep the log for "draft-mtp": that
-        # string is absent on b10709 even while speculation is demonstrably running, and a log
-        # needle has already produced two false negatives in this project. A non-null
-        # draft_n means the draft model actually produced tokens and had them accepted.
         dn, da = tm.get("draft_n"), tm.get("draft_n_accepted")
         got.append({"gen_tps": tm.get("predicted_per_second"),
                     "prompt_tps": tm.get("prompt_per_second"),
@@ -190,8 +209,6 @@ def bench(port=8000, n=3, max_tokens=256):
     g = [x["gen_tps"] for x in got if x.get("gen_tps")]
     acc = [x["accept_rate"] for x in got if x.get("accept_rate") is not None]
     per = vram_per_gpu()
-    # Tensor split gives IDENTICAL per-GPU memory because every tensor is divided; layer split
-    # cannot. That asymmetry is how a silent fallback to layer mode would be caught.
     sym = bool(len(per) == 2 and abs(per[0] - per[1]) <= 64)
     return {"runs": got, "avg": round(sum(g) / len(g), 1) if g else None,
             "best": round(max(g), 1) if g else None,
@@ -200,17 +217,10 @@ def bench(port=8000, n=3, max_tokens=256):
             "vram_per_gpu": per, "tensor_split_engaged": sym}
 
 
-# ---------- 3. context ladder: biggest that boots AND answers ----------
-# f16 KV (forced by tensor mode) costs ~2x the q8_0 cache this ladder was tuned for, so the
-# floor is extended: better to serve a smaller context than to fail to deploy. Real prompts
-# measured 740-835 tokens, so even 8192 has ~5x headroom; over-length prompts are REJECTED
-# (exceed_context_size_error), never silently truncated.
-# MEASURED on the 2026-09-22 go-live: with tensor split + f16 KV, 262144 and 196608 do not
-# fail fast - tensor mode disables llama.cpp's auto-fit, so an oversized ctx HANGS for the
-# full health timeout (15 min each, ~30 min of GPU wasted). 131072 booted at 13,287 MiB per
-# card in under a minute. Start there; the lower rungs are insurance, not expected.
+# Start with the biggest context and step down until one boots and answers a real request.
+# Each try gets 5 minutes, so a size that is too big for memory fails fast.
 LADDER = [131072, 98304, 65536, 32768, 16384, 8192]
-RUNG_TIMEOUT = 300   # a rung that fits boots in <1 min; don't wait 15 min for one that hangs
+RUNG_TIMEOUT = 300
 chosen = None
 for ctx in LADDER:
     banner("TRYING ctx = %d" % ctx)
@@ -233,10 +243,11 @@ for ctx in LADDER:
     if not (b["tensor_split_engaged"] and b["mtp_engaged"]):
         print("  WARNING: a lever did not engage - this endpoint will be slower than measured. "
               "Serving anyway, but the 28 tok/s figure does not apply.", flush=True)
+    chosen["thinking"] = thinking_check()
     break
 assert chosen, "no context size worked"
 
-# ---------- 4. tunnel ----------
+# only port 8000 goes public, and llama-server still checks the api key
 banner("STARTING CLOUDFLARE TUNNEL")
 sh("wget -qO /kaggle/tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/"
    "download/cloudflared-linux-amd64 && chmod +x /kaggle/tmp/cloudflared")
@@ -257,14 +268,11 @@ json.dump({"url": url, "api_key": API_KEY, "repo": USED_REPO,
            "mtp_engaged": chosen["bench"]["mtp_engaged"],
            "accept_rate": chosen["bench"]["accept_rate"],
            "vram_total_mib": vram, "gen_tps_avg": chosen["bench"]["avg"],
-           "gen_tps_best": chosen["bench"]["best"]},
+           "gen_tps_best": chosen["bench"]["best"], **chosen["thinking"]},
           open(OUT + "/endpoint.json", "w"), indent=1)
 
-# Bounded to the minimum that fits deploy + one confirmation drive. Earlier a 45-min
-# window was spent for no gain; the model call itself is already proven five times.
-# Live window after the endpoint comes up. 0.3 h covered one confirmation drive; a go-live
-# needs n8n import + 5 sequential heals (~2-3 min each incl. restore pushes) with margin.
-HOURS = 1.5   # round 3: 2 multi-attempt retry cases + 5 controls; the CLI cannot cancel, so not more
+# the session ends by itself after 1.5 h, because the kaggle CLI can't reliably cancel a running kernel
+HOURS = 1.5
 deadline = time.time() + HOURS * 3600
 
 
@@ -285,6 +293,7 @@ def announce():
 announce()
 n = 0
 while time.time() < deadline:
+    # if llama-server died, start it again; the tunnel stays up so the URL doesn't change
     time.sleep(60); n += 1
     if not sh("pgrep -f llama-server")[1].strip():
         print("!! server died, restarting", flush=True)

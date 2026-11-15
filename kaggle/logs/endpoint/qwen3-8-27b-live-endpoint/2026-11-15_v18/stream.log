@@ -1,0 +1,4 @@
+C:\Users\Harsh Raj\AppData\Roaming\Python\Python313\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (7.4.3)/charset_normalizer (3.4.4) doesn't match a supported version!
+  warnings.warn(
+500 Server Error: Internal Server Error for url: https://api.kaggle.com/v1/kernels/logs/stream/lacrimatct/qwen3-8-27b-live-endpoint
+Warning: Looks like you're using an outdated `kaggle` version (installed: 2.2.4), please consider upgrading to the latest version (2.2.5)

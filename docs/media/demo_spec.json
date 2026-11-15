@@ -1,0 +1,84 @@
+[
+ {
+  "title": "Self-healing CI/CD pipeline",
+  "sub": "One failing push, one fix pull request. A recorded run from 2026-11-15.",
+  "seconds": 5
+ },
+ {
+  "title": "The parts",
+  "sub": "A GitHub repository with Actions, an n8n workflow of 26 nodes, and Qwen3.8-27B served from a Kaggle notebook with two T4 GPUs.",
+  "seconds": 6
+ },
+ {
+  "image": "docs/media/shots/00_workflow_canvas.jpg",
+  "caption": "The n8n workflow that does the healing. The two nodes at the bottom left store the model address.",
+  "seconds": 7
+ },
+ {
+  "image": "docs/media/shots/01_break_commit.jpg",
+  "caption": "1. A commit deletes one line in formatGreeting, so the variable clean is no longer defined.",
+  "seconds": 7
+ },
+ {
+  "image": "docs/media/shots/02_actions_runs.jpg",
+  "caption": "2. GitHub Actions runs the tests on every push to main.",
+  "seconds": 6
+ },
+ {
+  "image": "docs/media/shots/03_failed_run.jpg",
+  "caption": "3. The build-and-test job fails after 9 s. The notify job, which calls n8n, runs and passes.",
+  "seconds": 8
+ },
+ {
+  "image": "docs/media/shots/04_failed_job_log.jpg",
+  "caption": "4. The log shows ReferenceError: clean is not defined, and the step labels the failure failure_kind=code.",
+  "seconds": 9
+ },
+ {
+  "image": "docs/media/shots/05_n8n_execution.jpg",
+  "caption": "5. n8n received the webhook. The execution finished in 18.7 s with every node green.",
+  "seconds": 7
+ },
+ {
+  "image": "docs/media/shots/06_n8n_execution_zoom.png",
+  "crop": [
+   0,
+   0,
+   800,
+   186
+  ],
+  "caption": "6a. Left half of the run: receive the webhook, fetch the job log and changed files, pick the files, build the prompt.",
+  "seconds": 7
+ },
+ {
+  "image": "docs/media/shots/06_n8n_execution_zoom.png",
+  "crop": [
+   768,
+   0,
+   1568,
+   186
+  ],
+  "caption": "6b. Right half: ask Qwen3.8, rebuild the streamed reply, extract the edit, create the branch, push the file, open the pull request.",
+  "seconds": 8
+ },
+ {
+  "image": "docs/media/shots/07_pr_conversation.jpg",
+  "caption": "7. A pull request opens from the branch ai-fix-format-greeting-4da7e41.",
+  "seconds": 7
+ },
+ {
+  "image": "docs/media/shots/08_pr_diff.jpg",
+  "caption": "8. The edit replaces ${clean} with ${name}. It makes the tests pass but drops the original trim, so a person still has to review it.",
+  "seconds": 9
+ },
+ {
+  "image": "docs/media/shots/09_pr_checks.jpg",
+  "caption": "9. CI runs on the pull request and passes. Nothing is merged until a person does it.",
+  "seconds": 7
+ },
+ {
+  "title": "From push to pull request in about a minute",
+  "sub": "CI failed in 16 s, the n8n run took 18.7 s, CI on the fix took 12 s. Source: GitHub Actions and n8n execution 2.",
+  "seconds": 6
+ }
+]

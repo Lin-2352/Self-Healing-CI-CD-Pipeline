@@ -1,8 +1,8 @@
 """Print what the n8n workflow and the backend need to reach the Kaggle model, and copy the URL.
 
 Shows the current model URL (saved by watch_deploy.py), the endpoint's API key (fixed in
-kaggle/endpoint/deploy_src.py), whether the model answers, and whether the cloud n8n variable
-QWEN_BASE_URL already holds this URL. The URL goes to the clipboard.
+kaggle/endpoint/deploy_src.py) and whether the model answers. It does not ask n8n what address it
+holds. The URL goes to the clipboard.
 """
 import io, json, os, re, subprocess, sys, urllib.error, urllib.request
 
