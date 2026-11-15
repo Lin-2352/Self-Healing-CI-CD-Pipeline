@@ -4,7 +4,7 @@
 // (stored model URL test)
 
 function formatGreeting(name) {
-  return `Hello, ${clean}!`;
+  return `Hello, ${name}!`;
 }
 
 function formatSum(a, b) {
