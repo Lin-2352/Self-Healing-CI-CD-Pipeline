@@ -18,7 +18,7 @@ uses `SCHOOL` and `UNIVERSITY SHORT NAME`; they are set in `main.tex`.
 | `UNIVERSITY` | `frontmatter/certificate.tex`, `frontmatter/title.tex` | 1, 2 |
 | `CITY, STATE - PIN` | `frontmatter/certificate.tex`, `frontmatter/title.tex` | 1, 2 |
 | `BRANCH` | `frontmatter/certificate.tex`, `frontmatter/title.tex` | 1, 2 |
-| `DATE` | `frontmatter/certificate.tex`, `frontmatter/declaration.tex`, `frontmatter/plagiarism.tex` | 2, 3, 124 |
+| `DATE` | `frontmatter/certificate.tex`, `frontmatter/declaration.tex`, `frontmatter/plagiarism.tex` | 2, 3, 125 |
 | `GUIDE NAME` | `frontmatter/certificate.tex`, `frontmatter/declaration.tex`, `frontmatter/title.tex` | 1, 2, 3 |
 | `GUIDE DESIGNATION` | `frontmatter/certificate.tex` | 2 |
 | `contribution` | `frontmatter/contributors.tex` | 6 |
@@ -31,9 +31,9 @@ uses `SCHOOL` and `UNIVERSITY SHORT NAME`; they are set in `main.tex`.
 | `ROLL NO 4` | `frontmatter/declaration.tex`, `frontmatter/title.tex` | 1, 3 |
 | `ROLL NO 5` | `frontmatter/declaration.tex`, `frontmatter/title.tex` | 1, 3 |
 | `ROLL NO 6` | `frontmatter/declaration.tex`, `frontmatter/title.tex` | 1, 3 |
-| `PERCENTAGE` | `frontmatter/plagiarism.tex` | 124 |
-| `TOOL` | `frontmatter/plagiarism.tex` | 124 |
-| `Insert the plagiarism report pages here.` | `frontmatter/plagiarism.tex` | 124 |
+| `PERCENTAGE` | `frontmatter/plagiarism.tex` | 125 |
+| `TOOL` | `frontmatter/plagiarism.tex` | 125 |
+| `Insert the plagiarism report pages here.` | `frontmatter/plagiarism.tex` | 125 |
 | `PROJECT TITLE, if different` | `frontmatter/title.tex` | 1 |
 | `SCHOOL, IN CAPITALS` | `frontmatter/title.tex` | 1 |
 | `INSTITUTE, IN CAPITALS` | `frontmatter/title.tex` | 1 |

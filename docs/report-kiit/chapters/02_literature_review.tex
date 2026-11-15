@@ -30,6 +30,9 @@ Wei et al.\ showed that prompting a model to produce intermediate reasoning step
 \section{Security of LLM-Integrated Applications}
 Greshake et al.\ showed that applications which feed retrieved text into a model blur the line between data and instructions, so that an attacker who controls the retrieved text can steer the application \cite{greshake23}. The OWASP list of risks for LLM applications collects the same class of problems \cite{owasp-llm}. Our pipeline fits that description exactly: the prompt contains CI logs and source files that anyone who can push to the repository can influence. Chapter~10 describes the controls (the failure-kind gate, exact-match edits, a syntax check, CI on the pull request and human review) and states which attacks they do not stop.
 
+\section{Tools and Platforms Used}
+The pipeline is assembled from existing tools, and their documentation is the reference for the behaviour this report relies on. GitHub Actions defines workflows, jobs, runners and the failure conditions used in Chapter~5 \cite{gh-actions}; the GitHub REST API supplies the job list, the log download, the file contents and the branch and pull request calls \cite{gh-rest}; and the webhook documentation describes how a delivery is signed and sent \cite{gh-webhooks}. The healing workflow runs in n8n \cite{n8n-docs}. The model is served by the llama.cpp server \cite{llamacpp} on a Kaggle notebook \cite{kaggle-docs} and published through a Cloudflare quick tunnel \cite{cf-tunnel}. The second healer is written with FastAPI \cite{fastapi}, and the demo application that CI runs on uses Express \cite{express}.
+
 \section{Summary of Research Gaps}
 Table~\ref{tab:gaps} lists what the cited work leaves open and how this project responds.
 
