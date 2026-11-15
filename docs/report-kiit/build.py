@@ -35,7 +35,7 @@ def main(argv):
         if os.path.isdir(extra):
             env["PATH"] = extra + os.pathsep + env["PATH"]
     os.makedirs(OUT, exist_ok=True)
-    cmd = ["latexmk", "-pdf", "-interaction=nonstopmode", "-file-line-error-style" if False else "-f",
+    cmd = ["latexmk", "-xelatex", "-interaction=nonstopmode", "-f",
            "-outdir=output", "main.tex"]
     p = subprocess.run(cmd, cwd=HERE, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
     logf = os.path.join(OUT, "main.log")

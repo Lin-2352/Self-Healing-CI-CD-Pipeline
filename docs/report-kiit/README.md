@@ -12,6 +12,8 @@ python docs/report-kiit/make_placeholders.py list the placeholders and the pages
 python docs/report-kiit/tests/test_check_layout.py
 ```
 
+The report is compiled with XeLaTeX (`% !TEX program = xelatex` at the top of `main.tex`, also honoured by Overleaf). The main font is Times New Roman where it is installed, and TeX Gyre Termes (a metric-compatible Times clone) otherwise.
+
 `build.py` fails on any LaTeX error, an overfull box wider than 1 pt, an undefined reference or citation, or a
 float that is too large. `check_layout.py` renders each page with `pdftoppm` and reports text within 3 mm of the
 page border, a missing border, holes in the middle of a page, and marks in the side margins. MiKTeX and

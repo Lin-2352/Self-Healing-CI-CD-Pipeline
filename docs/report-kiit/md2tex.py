@@ -80,7 +80,7 @@ def table(rows, caption, label):
     tot = float(sum(widths))
     spec = "".join(r">{\raggedright\arraybackslash}p{%.3f\dimexpr\linewidth-%d\tabcolsep\relax}" % (w / tot, 2 * n)
                    for w in widths)
-    body_tex = [" & ".join(r"\textbf{" + inline(c) + "}" for c in header) + r" \\", r"\midrule"]
+    body_tex = [r"\rowcolor{gray!14}" + " & ".join(r"\textbf{" + inline(c) + "}" for c in header) + r" \\", r"\midrule"]
     for r in body:
         r = r + [""] * (n - len(r))
         body_tex.append(" & ".join(inline(c) for c in r[:n]) + r" \\")

@@ -1,11 +1,15 @@
+% !TEX program = xelatex
 \documentclass[12pt, a4paper]{report}
 
 % ====================================================================
 % Preamble: packages and settings (same page layout as the KIIT reference report)
 % ====================================================================
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
+% Times New Roman as the main font. Where it is not installed (for example on Overleaf),
+% TeX Gyre Termes, a metric-compatible Times clone, is used instead.
+\usepackage{fontspec}
+\IfFontExistsTF{Times New Roman}
+  {\setmainfont{Times New Roman}}
+  {\setmainfont{TeX Gyre Termes}}
 \usepackage{geometry}
 \geometry{a4paper, left=1.9cm, right=1.9cm, top=2.5cm, bottom=1.9cm,
           headheight=15pt, headsep=0.6cm, includefoot}
@@ -24,6 +28,8 @@
 \usepackage{float}
 \usepackage{seqsplit}
 \usepackage{array}
+\usepackage{colortbl}
+\usepackage[font=small, labelfont=bf, labelsep=period]{caption}
 \usepackage{enumitem}
 \usepackage{tikz}
 \usepackage{pgfplots}
@@ -92,7 +98,7 @@
 \fancypagestyle{body}{%
   \fancyhf{}%
   \fancyhead[R]{\textbf{Self-Healing CI/CD Pipeline}}%
-  \fancyfoot[L]{\ph{SCHOOL}, \ph{UNIVERSITY SHORT NAME}}%
+  \fancyfoot[L]{School of Computer Science \& Engineering, KIIT, BBSR}%
   \fancyfoot[R]{\thepage}%
   \renewcommand{\headrulewidth}{0.4pt}%
   \renewcommand{\footrulewidth}{0.4pt}%
@@ -103,11 +109,18 @@
   \renewcommand{\headrulewidth}{0pt}%
   \renewcommand{\footrulewidth}{0pt}%
 }
-\fancypagestyle{plain}{\pagestyle{body}}  % first page of a chapter looks like the others
+
+% --- headings: a little more structure than the default, same sizes in the text ---
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries}{\Large\chaptertitlename\ \thechapter}{8pt}{\huge}[\vspace{2pt}\titlerule]
+\titlespacing*{\chapter}{0pt}{20pt}{24pt}
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{0.8em}{}
+\renewcommand{\arraystretch}{1.12}
 \fancypagestyle{plain}{%
   \fancyhf{}%
   \fancyhead[R]{\textbf{Self-Healing CI/CD Pipeline}}%
-  \fancyfoot[L]{\ph{SCHOOL}, \ph{UNIVERSITY SHORT NAME}}%
+  \fancyfoot[L]{School of Computer Science \& Engineering, KIIT, BBSR}%
   \fancyfoot[R]{\thepage}%
   \renewcommand{\headrulewidth}{0.4pt}%
   \renewcommand{\footrulewidth}{0.4pt}%
@@ -150,7 +163,7 @@
 \fancypagestyle{plain}{%
   \fancyhf{}%
   \fancyhead[R]{\textbf{Self-Healing CI/CD Pipeline}}%
-  \fancyfoot[L]{\ph{SCHOOL}, \ph{UNIVERSITY SHORT NAME}}%
+  \fancyfoot[L]{School of Computer Science \& Engineering, KIIT, BBSR}%
   \fancyfoot[R]{\thepage}%
   \renewcommand{\headrulewidth}{0.4pt}%
   \renewcommand{\footrulewidth}{0.4pt}%
@@ -177,9 +190,4 @@
 \addcontentsline{toc}{chapter}{Bibliography}
 \pagestyle{body}
 \input{bibliography}
-
-\clearpage
-\phantomsection
-\addcontentsline{toc}{chapter}{Plagiarism Report}
-\input{frontmatter/plagiarism}
 \end{document}

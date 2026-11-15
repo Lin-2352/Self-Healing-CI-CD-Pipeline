@@ -9,7 +9,7 @@ images of the same kinds of page from this report are in `compare/`.
 
 | item | reference value | used here |
 |---|---|---|
-| class | `report`, 12 pt, A4 | same |
+| class | `report`, 12 pt, A4 | same; compiled with XeLaTeX and Times New Roman (the reference uses the default Computer Modern) |
 | margins | left and right 1.9 cm, top 2.5 cm, bottom 1.9 cm, headheight 15 pt, headsep 0.6 cm, `includefoot` | same |
 | spacing | `\onehalfspacing`, `\tolerance=10000`, `\hbadness=10000`, `\emergencystretch=3em`, `\sloppy` | same |
 | packages | graphicx, hyperref, fancyhdr, titlesec, setspace, tabularx, eso-pic, microtype (expansion and protrusion off), listings, xcolor, booktabs, float, seqsplit, tikz, pgfplots | same, plus longtable, array, enumitem, lmodern |
@@ -19,7 +19,7 @@ images of the same kinds of page from this report are in `compare/`.
 | footer | school and university text left, page number right; 0.4 pt rule | same, with placeholders |
 | front matter | title page, certificate, declaration, acknowledgement, abstract, project contributors, table of contents, list of figures, list of tables; Roman page numbers | same order |
 | body | 12 chapters and an appendix, Arabic page numbers | same; chapter list in `main.tex` |
-| end matter | bibliography (`thebibliography`, IEEE-like entries), plagiarism report page | same |
+| end matter | bibliography (`thebibliography`, IEEE-like entries), plagiarism report page | bibliography only; the plagiarism page was removed on request |
 
 ## What the PDF looks like
 

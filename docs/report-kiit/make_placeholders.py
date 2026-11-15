@@ -34,15 +34,14 @@ def main():
                     pages.setdefault(key, []).append(n)
     lines = ["# Placeholders", "",
              "Every value that has to be filled in later is written `\\ph{...}` in the LaTeX source and prints in bold",
-             "square brackets in the PDF. Search the source for `\\ph{` to find them. The footer of every body page",
-             "uses `SCHOOL` and `UNIVERSITY SHORT NAME`; they are set in `main.tex`.", "",
+             "square brackets in the PDF. Search the source for `\\ph{` to find them. Names, roll numbers, the guide,",
+             "the school, institute, city, month and the submission date (17/11/2026) are filled in.", "",
              "| placeholder | source files | PDF pages |", "|---|---|---|"]
     for key, fs in found.items():
         pg = pages.get(key, [])
         shown = ", ".join(str(p) for p in pg[:12]) + (" ..." if len(pg) > 12 else "") if pg else "footer or inside text"
         lines.append("| `%s` | %s | %s |" % (key, ", ".join("`%s`" % x for x in sorted(fs)), shown))
-    lines += ["", "Other text that is left for you to write and is marked in the same way: the declaration wording, the",
-              "acknowledgement, the project contributors lists, and the plagiarism report pages.", ""]
+    lines += ["", "The abstract and all chapters are written; the acknowledgement text and the contribution lines are yours to write.", ""]
     io.open(os.path.join(HERE, "PLACEHOLDERS.md"), "w", encoding="utf-8", newline="\n").write("\n".join(lines))
     print("wrote PLACEHOLDERS.md with %d placeholders" % len(found))
 
