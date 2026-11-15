@@ -23,6 +23,8 @@ imports the workflow. `show_model_info.bat` prints the URL and the endpoint key 
 Run only one healer per repository at a time (see the root `README.md`): the n8n workflow and the
 backend both react to the same failed run.
 
+The order of the scripts for both paths (local n8n, or the web n8n when the local one fails) is also in `start/STEPS.txt`.
+
 ## Start scripts
 
 | script | what it runs | takes | notes |
