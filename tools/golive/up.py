@@ -21,7 +21,7 @@ N8N = next((p for p in [os.path.join(HOME, "app", "node_modules", "n8n", "bin", 
                         os.path.join(os.environ["TEMP"], "n8n_verify", "node_modules", "n8n", "bin", "n8n")]
             if os.path.exists(p)), None)
 CLOUDFLARED = os.path.join(HOME, "bin", "cloudflared.exe")
-REPO = "hr-agarwal/self_healing_CI-CD_Pipeline"
+REPO = "Lin-2352/Self-Healing-CI-CD-Pipeline"   # throwaway repo for live tests
 PORT = 5678
 HOOK_PATH = "/webhook/github-failure"
 DETACH = 0x00000008 | 0x00000200          # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
