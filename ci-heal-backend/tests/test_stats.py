@@ -32,6 +32,8 @@ def _settings() -> Settings:
         app_env="test",
         database_url="sqlite:///:memory:",
         api_token=SecretStr("api-secret"),
+        github_webhook_secret=SecretStr("hook"),
+        n8n_shared_token=SecretStr("n8n"),
     )
 
 

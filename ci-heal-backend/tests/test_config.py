@@ -3,9 +3,16 @@
 import logging
 
 import pytest
+from pydantic import SecretStr
 
 from app.config import Settings
 from app.main import create_app
+
+_SECRETS: dict[str, SecretStr] = {
+    "github_webhook_secret": SecretStr("hook"),
+    "n8n_shared_token": SecretStr("n8n"),
+    "api_token": SecretStr("api"),
+}
 
 
 def test_defaults_are_safe() -> None:
@@ -88,6 +95,7 @@ def test_startup_warns_when_extra_samples_cannot_differ(
     settings = Settings(
         _env_file=None,
         app_env="test",
+        **_SECRETS,
         database_url="sqlite:///:memory:",
         classifier_samples=3,
         classifier_temperature=0,
@@ -101,10 +109,11 @@ def test_startup_warns_when_extra_samples_cannot_differ(
 
 def test_startup_is_quiet_when_samples_can_differ(caplog: pytest.LogCaptureFixture) -> None:
     quiet = (
-        Settings(_env_file=None, app_env="test", database_url="sqlite:///:memory:"),
+        Settings(_env_file=None, app_env="test", **_SECRETS, database_url="sqlite:///:memory:"),
         Settings(
             _env_file=None,
             app_env="test",
+            **_SECRETS,
             database_url="sqlite:///:memory:",
             classifier_samples=3,
             classifier_temperature=0.7,
@@ -122,6 +131,7 @@ def test_startup_warns_when_fix_temperature_is_zero(caplog: pytest.LogCaptureFix
     settings = Settings(
         _env_file=None,
         app_env="test",
+        **_SECRETS,
         database_url="sqlite:///:memory:",
         fix_temperature=0,
     )

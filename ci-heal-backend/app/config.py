@@ -183,6 +183,28 @@ def parse_category_thresholds(raw: str) -> dict[str, float]:
     return cleaned
 
 
+def check_required_secrets(settings: Settings) -> None:
+    """Refuse to start outside dev with a missing or placeholder secret.
+
+    Args:
+        settings: The settings the process is starting with.
+
+    Raises:
+        ValueError: A required secret is empty or still `replace-me`.
+    """
+    if settings.app_env == "dev":
+        return
+    required = {
+        "GITHUB_WEBHOOK_SECRET": settings.github_webhook_secret,
+        "N8N_SHARED_TOKEN": settings.n8n_shared_token,
+        "API_TOKEN": settings.api_token,
+    }
+    for name, secret in required.items():
+        value = secret.get_secret_value().strip()
+        if not value or value == "replace-me":
+            raise ValueError(f"{name} must be set to a real secret when APP_ENV is not dev")
+
+
 def warn_repeated_classifier_samples(settings: Settings) -> None:
     """Warn when extra classifier samples would all be the same reply.
 

@@ -4,6 +4,7 @@ from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 from sqlalchemy.orm import Session
 
 from app.config import Settings
@@ -14,7 +15,14 @@ from app.main import create_app
 @pytest.fixture
 def settings() -> Settings:
     """Return test settings that ignore any developer `.env` file."""
-    return Settings(_env_file=None, app_env="test", database_url="sqlite:///:memory:")
+    return Settings(
+        _env_file=None,
+        app_env="test",
+        database_url="sqlite:///:memory:",
+        github_webhook_secret=SecretStr("hook"),
+        n8n_shared_token=SecretStr("n8n"),
+        api_token=SecretStr("api"),
+    )
 
 
 @pytest.fixture

@@ -138,6 +138,11 @@ async def n8n_webhook(
     data = fetched.data if fetched.ok else None
     if not isinstance(data, dict):
         raise HTTPException(status_code=502, detail="github_unavailable")
+    if data.get("status") != "completed" or not _non_empty_text(data.get("conclusion")):
+        raise HTTPException(status_code=409, detail="run not completed")
+    if _is_fork_run(data, payload.repo):
+        logger.info("ignored fork run repo=%s run=%s", payload.repo, payload.run_id)
+        return _accepted("ignored")
     incoming = _from_api(payload, data)
     if incoming is None:
         return _accepted("ignored")
@@ -270,6 +275,9 @@ def _from_github(
     sha = run.get("head_sha")
     if repo is None or run_id is None or run_attempt is None:
         return None
+    if _is_fork_run(run, repo):
+        logger.info("ignored fork run repo=%s run=%s", repo, run_id)
+        return None
     if not isinstance(branch, str) or not isinstance(sha, str) or len(sha) < 7:
         return None
     name = run.get("name")
@@ -295,13 +303,11 @@ def _from_api(payload: N8nPayload, data: dict[str, object]) -> IncomingRun | Non
         return None
     branch = data.get("head_branch")
     sha = data.get("head_sha")
-    conclusion = data.get("conclusion")
+    conclusion = str(data.get("conclusion"))
     if not isinstance(branch, str) or not branch:
         branch = payload.branch
     if not isinstance(sha, str) or len(sha) < 7:
         sha = payload.commit
-    if not isinstance(conclusion, str):
-        conclusion = "failure"
     name = data.get("name")
     actor = _login(data.get("actor")) or _login(data.get("triggering_actor")) or payload.actor
     return IncomingRun(
@@ -317,6 +323,18 @@ def _from_api(payload: N8nPayload, data: dict[str, object]) -> IncomingRun | Non
         attempt=payload.attempt,
         source=FailureSource.N8N,
     )
+
+
+def _is_fork_run(run: dict[str, object], repo: str) -> bool:
+    """True when the run's head repository is present and is not the base repository."""
+    if "head_repository" not in run:
+        return False
+    return _repo_name(run.get("head_repository")) != repo
+
+
+def _non_empty_text(value: object) -> bool:
+    """True for a non-empty string."""
+    return isinstance(value, str) and bool(value)
 
 
 def _repo_name(value: object) -> str | None:

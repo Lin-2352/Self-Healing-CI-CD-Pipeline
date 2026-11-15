@@ -259,7 +259,9 @@ def test_bad_hmac_is_rejected() -> None:
 
 
 def test_unset_webhook_secret_is_rejected_outside_dev() -> None:
-    app = create_app(_settings(app_env="prod", github_webhook_secret=SecretStr("")))
+    app = create_app(_settings(app_env="prod"))
+    # Startup refuses an empty secret, so clear it after boot to test the request guard.
+    app.state.settings = _settings(app_env="prod", github_webhook_secret=SecretStr(""))
     body = json.dumps(_workflow()).encode()
     with TestClient(app) as client:
         response = client.post(
@@ -482,7 +484,6 @@ def test_startup_requeues_a_stuck_processing_failure(
             database_url=url,
             processing_stale_seconds=30,
             max_recoveries=2,
-            api_token=SecretStr(""),
         )
     )
     with TestClient(app):
@@ -635,3 +636,143 @@ def test_ping_is_ok_and_cancelled_is_ignored() -> None:
     assert ping.status_code == 200
     assert cancelled.status_code == 202
     assert cancelled.json()["status"] == "ignored"
+
+
+@pytest.mark.parametrize("pad", [0, 1, 8, 20, 69, 70, 200])
+def test_non_ascii_signature_is_401(pad: int) -> None:
+    app = create_app(_settings())
+    with TestClient(app) as client:
+        response = client.post(
+            "/webhooks/github",
+            content=json.dumps(_workflow()).encode(),
+            headers={
+                "X-GitHub-Event": "workflow_run",
+                "X-Hub-Signature-256": ("a" * pad + "é").encode("utf-8"),
+            },
+        )
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize("pad", [0, 1, 7, 8, 9, 20])
+def test_non_ascii_n8n_token_is_401(pad: int) -> None:
+    app = create_app(_settings())
+    with TestClient(app) as client:
+        response = client.post(
+            "/webhooks/n8n",
+            content=b"{}",
+            headers={
+                "X-N8N-Token": ("a" * pad + "é").encode("utf-8"),
+                "Content-Type": "application/json",
+            },
+        )
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize("pad", [0, 1, 7, 8, 9, 20])
+def test_non_ascii_api_token_is_401(pad: int) -> None:
+    app = create_app(_settings())
+    with TestClient(app) as client:
+        response = client.get(
+            "/failures", headers={"Authorization": b"Bearer " + ("a" * pad + "é").encode("utf-8")}
+        )
+    assert response.status_code == 401
+
+
+def _n8n_body() -> bytes:
+    return json.dumps(
+        {"run_id": 100, "repo": "acme/demo", "branch": "main", "commit": _SHA}
+    ).encode()
+
+
+def _n8n_post(client: TestClient) -> httpx.Response:
+    return client.post(
+        "/webhooks/n8n",
+        content=_n8n_body(),
+        headers={"X-N8N-Token": "n8n-secret", "Content-Type": "application/json"},
+    )
+
+
+@respx.mock
+@pytest.mark.parametrize(
+    "run",
+    [
+        {"status": "in_progress", "conclusion": None},
+        {"status": "completed", "conclusion": None},
+        {"status": "completed", "conclusion": ""},
+        {"status": "queued"},
+    ],
+)
+def test_n8n_unfinished_run_is_not_healed(run: dict[str, object]) -> None:
+    respx.route(host="testserver").pass_through()
+    data = {"run_attempt": 1, "head_branch": "main", "head_sha": _SHA, "name": "CI", **run}
+    respx.get(url__regex=r".*/actions/runs/100$").mock(return_value=httpx.Response(200, json=data))
+    app = create_app(_settings())
+    with TestClient(app) as client:
+        response = _n8n_post(client)
+        assert response.status_code == 409
+        assert _failures(client) == []
+
+
+@respx.mock
+def test_n8n_completed_failure_is_still_accepted() -> None:
+    respx.route(host="testserver").pass_through()
+    data = {
+        "run_attempt": 1,
+        "head_branch": "main",
+        "head_sha": _SHA,
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "failure",
+    }
+    respx.get(url__regex=r".*/actions/runs/100$").mock(return_value=httpx.Response(200, json=data))
+    _arm()
+    app = create_app(_settings())
+    _use(app, ["{}"])
+    with TestClient(app) as client:
+        response = _n8n_post(client)
+        assert response.status_code == 202
+        assert response.json()["status"] == "queued"
+
+
+def test_fork_pull_request_run_is_ignored() -> None:
+    payload = _workflow()
+    payload["workflow_run"]["head_repository"] = {"full_name": "mallory/demo"}  # type: ignore[index]
+    app = create_app(_settings())
+    with TestClient(app) as client:
+        response = _post(client, payload)
+        assert response.status_code == 202
+        assert response.json()["status"] == "ignored"
+        assert _failures(client) == []
+
+
+@respx.mock
+def test_same_repo_head_repository_is_still_processed() -> None:
+    _arm()
+    payload = _workflow()
+    payload["workflow_run"]["head_repository"] = {"full_name": "acme/demo"}  # type: ignore[index]
+    app = create_app(_settings())
+    _use(app, ["{}"])
+    with TestClient(app) as client:
+        response = _post(client, payload)
+        assert response.status_code == 202
+        assert response.json()["status"] == "queued"
+
+
+@respx.mock
+def test_n8n_fork_pull_request_run_is_ignored() -> None:
+    respx.route(host="testserver").pass_through()
+    data = {
+        "run_attempt": 1,
+        "head_branch": "main",
+        "head_sha": _SHA,
+        "status": "completed",
+        "conclusion": "failure",
+        "head_repository": {"full_name": "mallory/demo"},
+    }
+    respx.get(url__regex=r".*/actions/runs/100$").mock(return_value=httpx.Response(200, json=data))
+    app = create_app(_settings())
+    with TestClient(app) as client:
+        response = _n8n_post(client)
+        assert response.status_code == 202
+        assert response.json()["status"] == "ignored"
+        assert _failures(client) == []

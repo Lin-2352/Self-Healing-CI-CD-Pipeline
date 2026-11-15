@@ -17,6 +17,7 @@ from app import __version__
 from app.api import decisions, failures, health, stats, webhooks
 from app.config import (
     Settings,
+    check_required_secrets,
     get_settings,
     warn_fix_temperature,
     warn_repeated_classifier_samples,
@@ -81,6 +82,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         level=settings.log_level,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    check_required_secrets(settings)
     warn_repeated_classifier_samples(settings)
     warn_fix_temperature(settings)
     engine = make_engine(settings.database_url)

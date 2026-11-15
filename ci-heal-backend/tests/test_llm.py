@@ -17,6 +17,12 @@ from app.services.secret_redactor import redact
 
 _URL = "https://llm.test/v1/chat/completions"
 
+_SECRETS: dict[str, SecretStr] = {
+    "github_webhook_secret": SecretStr("hook"),
+    "n8n_shared_token": SecretStr("n8n"),
+    "api_token": SecretStr("api"),
+}
+
 
 def _message(text: str = "hello") -> ChatMessage:
     return ChatMessage(role="user", content=redact(text).text)
@@ -228,6 +234,7 @@ def test_http_provider_without_a_key_fails_at_startup() -> None:
     settings = Settings(
         _env_file=None,
         app_env="test",
+        **_SECRETS,
         database_url="sqlite:///:memory:",
         fixer_llm_provider="http",
         fixer_llm_base_url="https://llm.test",

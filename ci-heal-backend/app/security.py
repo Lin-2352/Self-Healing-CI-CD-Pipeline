@@ -7,8 +7,8 @@ import hmac
 def secrets_equal(left: str, right: str) -> bool:
     """Return whether two secrets match.
 
-    A different length is a mismatch. `hmac.compare_digest` is only called when the
-    lengths agree, so a short guess cannot raise.
+    Both values are compared as UTF-8 bytes, so a non-ASCII header is a mismatch and
+    never raises.
 
     Args:
         left: The value supplied by the caller.
@@ -17,9 +17,9 @@ def secrets_equal(left: str, right: str) -> bool:
     Returns:
         True when both are non-empty and equal.
     """
-    if not left or not right or len(left) != len(right):
+    if not left or not right:
         return False
-    return hmac.compare_digest(left, right)
+    return hmac.compare_digest(left.encode("utf-8"), right.encode("utf-8"))
 
 
 def github_signature(secret: str, body: bytes) -> str:
