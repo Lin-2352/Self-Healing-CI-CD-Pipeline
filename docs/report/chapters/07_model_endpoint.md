@@ -2,7 +2,7 @@
 
 ### Role of the service
 
-The healer needs a language model that n8n and the backend can call over HTTPS. We could not pay for a hosted API, so the model runs on a free Kaggle notebook. A Python script starts a `llama-server` process from the llama.cpp project, loads Qwen3.8-27B into it, and puts a Cloudflare tunnel in front of port 8000. The result is an OpenAI-style chat API (`/v1/chat/completions`) at a temporary web address.
+The healer needs a language model that n8n and the backend can call over HTTPS. We could not pay for a hosted API, so the model runs on a free Kaggle notebook. A Python script starts a `llama-server` process from the llama.cpp project, loads Qwen3.8-27B into it, and puts a Cloudflare tunnel in front of port 8000. The result is an OpenAI-style chat API (`/v1/chat/completions`) at a temporary web address. This is the primary model. If it is not reachable, the n8n workflow can send the same request to OpenAI (ChatGPT) as an optional second model (Chapter 6).
 
 Everything that runs on Kaggle is one file, `kaggle/endpoint/deploy_src.py`. A small build script pastes the chosen model entry from `kaggle/endpoint/models.json` into it and writes the file that is uploaded (`kaggle/tools/build_endpoint.py`). Boot logs from each session are kept under `kaggle/logs/endpoint/qwen3-8-27b-live-endpoint/<run>/`. In this chapter "boot log v16" means the `boot.log` in the run folder whose name ends in `v16`.
 

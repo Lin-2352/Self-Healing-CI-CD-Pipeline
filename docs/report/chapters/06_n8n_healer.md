@@ -46,6 +46,8 @@ Both paths meet at **Assemble Model Reply**, which rebuilds a streamed answer in
 
 The fallback has a documented weakness. In the one test on n8n Cloud, using the free OpenAI credits that come with the trial, it answered `Forbidden` for runs started by the webhook (source: docs/guides/cloud-n8n.md). So we treat it as untested until a real OpenAI key is attached.
 
+In short, there are two models. Qwen3.8-27B on Kaggle is the primary one and does all the healing in our runs. OpenAI (ChatGPT) is the optional second one: the n8n Cloud trial account we used came with 100 free OpenAI credits, so the node can be bound to those without paying, but the fallback is only used when Qwen is down or returns nothing usable.
+
 ### Stage 5: extract the fix
 
 `Extract AI Response` (tools/nodes/extract_ai_response.js) turns the reply into a patched file. It is deliberately strict, because a quiet mistake here becomes a pull request.

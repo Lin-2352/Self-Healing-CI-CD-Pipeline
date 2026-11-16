@@ -32,7 +32,7 @@ Both webhook nodes, `GitHub Failure Webhook` and `Set Model URL`, use `N8N Webho
 
 `OpenAI Fallback` ships with no credential (`tools/tests/test_workflow_structure.py` checks this). It is the node on the `no` branch of `Model OK?`: when the Qwen request fails or returns no usable stream, the same two messages go to `gpt-4.1`, and `Normalize OpenAI Reply` converts the answer for the rest of the workflow.
 
-On Cloud the node can be bound to the free OpenAI credits that come with the trial. In our test, with that binding, the node answered `Forbidden` on runs started by the webhook. We did not find out why. Do not count on the fallback for webhook-triggered runs on Cloud. The node has `onError` set to continue, so its error reaches `Normalize OpenAI Reply`, which stops with a message that names both the Qwen failure and the fallback failure (`tools/nodes/normalize_openai_reply.js`). That message is what you will see in the execution.
+On Cloud the node can be bound to the free OpenAI credits that come with the trial (the trial account we used showed 100 credits). ChatGPT is therefore the optional second model, and Qwen on Kaggle stays the primary one. In our test, with that binding, the node answered `Forbidden` on runs started by the webhook. We did not find out why. Do not count on the fallback for webhook-triggered runs on Cloud. The node has `onError` set to continue, so its error reaches `Normalize OpenAI Reply`, which stops with a message that names both the Qwen failure and the fallback failure (`tools/nodes/normalize_openai_reply.js`). That message is what you will see in the execution.
 
 ## Activate and find the webhook URL
 
